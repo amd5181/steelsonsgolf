@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API } from '../App';
-import { Calendar, Users, Clock, ChevronRight, Loader2, ExternalLink, Newspaper } from 'lucide-react';
+import { Calendar, Users, Clock, Loader2, ExternalLink, Newspaper } from 'lucide-react';
 import { Badge } from '../components/ui/badge';
+
+// --- HELPERS ---
 
 function formatDate(dateStr) {
   if (!dateStr) return 'TBD';
@@ -23,60 +25,50 @@ function formatDeadline(dateStr) {
 function getStatusBadge(status, deadline) {
   if (status === 'completed') return { text: 'Completed', cls: 'bg-slate-500 text-white' };
   if (status === 'prices_set') {
-    if (deadline) { try { if (new Date() > new Date(deadline)) return { text: 'Locked', cls: 'bg-amber-500 text-white' }; } catch {} }
+    if (deadline && new Date() > new Date(deadline)) return { text: 'Locked', cls: 'bg-amber-500 text-white' };
     return { text: 'Open', cls: 'bg-emerald-500 text-white' };
   }
-  if (status === 'golfers_loaded') return { text: 'Setting Up', cls: 'bg-blue-500 text-white' };
   return { text: 'Coming Soon', cls: 'bg-slate-300 text-slate-700' };
+}
+
+// FIX: This solves the &amp; and &#8217; issues manually
+function cleanText(text) {
+  if (!text) return "";
+  const doc = new DOMParser().parseFromString(text, 'text/html');
+  const decoded = doc.documentElement.textContent;
+  return decoded.replace(/<[^>]+>/g, '').trim();
 }
 
 const SLOT_NAMES = ['Masters', 'PGA Championship', 'U.S. Open', 'The Open'];
 
-/**
- * Robust text cleaner to handle HTML entities found in GOLF.com feeds
- * This fixes the "&amp;" and "&#8217;" issues from your screenshots.
- */
-function cleanText(text) {
-  if (!text) return "";
-  return text
-    .replace(/&amp;/g, '&')
-    .replace(/&#8217;/g, "'")
-    .replace(/&#8211;/g, "–")
-    .replace(/&#8220;/g, '"')
-    .replace(/&#8221;/g, '"')
-    .replace(/<[^>]+>/g, '') // Strip remaining HTML tags
-    .trim();
-}
-
 async function fetchGolfNews() {
   try {
-    // Specifically target the /news/ sub-feed to avoid gear and instruction fluff
+    // Specifically targeting the actual NEWS feed for the big February 2026 tour stories
     const rssUrl = 'https://golf.com/news/feed/';
     const r = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`);
     const data = await r.json();
 
-    if (data.status !== 'ok') throw new Error('GOLF.com News feed unavailable');
+    if (data.status !== 'ok') throw new Error('Feed unavailable');
 
     return data.items.slice(0, 5).map(item => ({
       headline: cleanText(item.title),
-      summary: item.description 
-        ? cleanText(item.description).slice(0, 115).trim() + '...' 
-        : 'Read the full tournament coverage on GOLF.com.',
+      summary: item.description ? cleanText(item.description).slice(0, 120) + '...' : 'Latest tour coverage.',
       source: 'GOLF.com',
       url: item.link,
       date: new Date(item.pubDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     }));
   } catch (err) {
-    console.error("Golf News Error:", err);
     return [{
       headline: "PGA & LIV Tour Updates",
-      summary: "We're having trouble loading the live feed. Visit GOLF.com for the latest from Pebble Beach and Adelaide.",
+      summary: "Visit GOLF.com directly for the latest from Pebble Beach and LIV Adelaide.",
       source: "GOLF.com",
       url: "https://golf.com/news/",
-      date: "Live"
+      date: "LIVE"
     }];
   }
 }
+
+// --- COMPONENT ---
 
 export default function HomePage() {
   const [tournaments, setTournaments] = useState([]);
@@ -85,7 +77,6 @@ export default function HomePage() {
   const [newsLoading, setNewsLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Tournament Fetch
   useEffect(() => {
     axios.get(`${API}/tournaments`)
       .then(r => setTournaments(r.data))
@@ -93,75 +84,55 @@ export default function HomePage() {
       .finally(() => setLoading(false));
   }, []);
 
-  // News Fetch with v5 Cache Key
-  // Note: Using 'v5' ensures the browser ignores the old 'all-sports' or 'messy' data
   useEffect(() => {
-    const cached = sessionStorage.getItem('golf_news_v5');
+    const cached = sessionStorage.getItem('golf_news_v5_clean');
     if (cached) {
       setNews(JSON.parse(cached));
       setNewsLoading(false);
     } else {
-      fetchGolfNews()
-        .then(articles => {
-          setNews(articles);
-          sessionStorage.setItem('golf_news_v5', JSON.stringify(articles));
-        })
-        .catch(() => setNews([]))
-        .finally(() => setNewsLoading(false));
+      fetchGolfNews().then(articles => {
+        setNews(articles);
+        sessionStorage.setItem('golf_news_v5_clean', JSON.stringify(articles));
+        setNewsLoading(false);
+      });
     }
   }, []);
 
   const allSlots = [1, 2, 3, 4].map(slot => {
     const t = tournaments.find(x => x.slot === slot);
-    return t || { slot, name: SLOT_NAMES[slot - 1], status: 'setup', team_count: 0, golfer_count: 0, start_date: '', end_date: '', deadline: '' };
+    return t || { slot, name: SLOT_NAMES[slot - 1], status: 'setup', team_count: 0, start_date: '', end_date: '', deadline: '' };
   });
 
   if (loading) return (
-    <div className="flex items-center justify-center h-[60vh]">
+    <div className="flex items-center justify-center h-screen">
       <Loader2 className="w-8 h-8 text-[#1B4332] animate-spin" />
     </div>
   );
 
   return (
-    <div className="p-4 md:p-8 max-w-5xl mx-auto animate-fade-in-up">
-      <div className="mb-6">
-        <h1 className="font-heading font-extrabold text-3xl sm:text-4xl text-[#0F172A] tracking-tight">
-          THE MAJORS
-        </h1>
-        <p className="text-slate-500 text-sm mt-1">Four tournaments. Infinite glory.</p>
+    <div className="p-4 md:p-8 max-w-5xl mx-auto">
+      <div className="mb-8">
+        <h1 className="font-heading font-extrabold text-4xl text-[#0F172A]">THE MAJORS</h1>
+        <p className="text-slate-500">2026 Season • Four tournaments. Infinite glory.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10 stagger">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-12">
         {allSlots.map((t) => {
           const badge = getStatusBadge(t.status, t.deadline);
           return (
-            <div key={t.slot}
-              className="bg-white rounded-xl border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.06)] hover:shadow-[0_8px_24px_rgba(27,67,50,0.12)] transition-all duration-300 overflow-hidden group cursor-pointer"
-              onClick={() => t.id ? navigate('/teams') : null}
-            >
-              <div className="h-2 bg-gradient-to-r from-[#1B4332] to-[#2D6A4F]" />
-              <div className="p-5">
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <span className="font-heading font-bold text-xs text-slate-400 uppercase tracking-widest">Major {t.slot}</span>
-                    <h2 className="font-heading font-bold text-xl text-[#0F172A] mt-0.5">{t.name}</h2>
-                  </div>
-                  <Badge className={badge.cls + ' text-xs font-bold'}>{badge.text}</Badge>
+            <div key={t.slot} onClick={() => t.id && navigate('/teams')}
+              className="bg-white rounded-xl border border-slate-100 shadow-sm p-5 hover:shadow-lg transition-all cursor-pointer group">
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Major {t.slot}</span>
+                  <h2 className="font-heading font-bold text-xl group-hover:text-[#1B4332]">{t.name}</h2>
                 </div>
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2 text-slate-500">
-                    <Calendar className="w-4 h-4 text-[#2D6A4F]" />
-                    <span>{formatDate(t.start_date)} - {formatDate(t.end_date)}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-slate-500">
-                    <Clock className="w-4 h-4 text-amber-500" />
-                    <span>Deadline: <strong className="text-[#0F172A]">{formatDeadline(t.deadline)}</strong></span>
-                  </div>
-                  <div className="flex items-center gap-2 text-slate-500">
-                    <Users className="w-4 h-4 text-[#1B4332]" />
-                    <span><strong className="text-[#0F172A] font-numbers">{t.team_count}</strong> teams entered</span>
-                  </div>
-                </div>
+                <Badge className={badge.cls}>{badge.text}</Badge>
+              </div>
+              <div className="space-y-2 text-sm text-slate-500">
+                <div className="flex items-center gap-2"><Calendar className="w-4 h-4" /> {formatDate(t.start_date)} - {formatDate(t.end_date)}</div>
+                <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-amber-500" /> Deadline: <b>{formatDeadline(t.deadline)}</b></div>
+                <div className="flex items-center gap-2"><Users className="w-4 h-4" /> {t.team_count} teams entered</div>
               </div>
             </div>
           );
@@ -171,43 +142,24 @@ export default function HomePage() {
       <div>
         <div className="flex items-center gap-2 mb-4">
           <Newspaper className="w-5 h-5 text-[#1B4332]" />
-          <h2 className="font-heading font-bold text-xl text-[#0F172A] tracking-tight">GOLF NEWS</h2>
+          <h2 className="font-heading font-bold text-xl">LATEST GOLF NEWS</h2>
         </div>
 
         {newsLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {[1,2,3,4].map(i => (
-              <div key={i} className="bg-white rounded-xl border border-slate-100 p-4 animate-pulse">
-                <div className="h-4 bg-slate-100 rounded w-3/4 mb-2" />
-                <div className="h-3 bg-slate-100 rounded w-full mb-1" />
-              </div>
-            ))}
-          </div>
-        ) : news.length === 0 ? (
-          <div className="bg-white rounded-xl border border-slate-100 p-6 text-center">
-            <p className="text-slate-400 text-sm">Couldn't load news right now.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 animate-pulse">
+            <div className="h-28 bg-slate-100 rounded-xl" /><div className="h-28 bg-slate-100 rounded-xl" />
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {news.map((article, i) => (
-              <a
-                key={i}
-                href={article.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 hover:shadow-lg hover:border-[#1B4332]/20 hover:-translate-y-1 transition-all duration-300 group block"
-              >
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <span className="text-[10px] font-bold text-[#2D6A4F] uppercase tracking-wider">{article.source}</span>
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    <span className="text-[10px] text-slate-400">{article.date}</span>
-                    <ExternalLink className="w-3 h-3 text-slate-300 group-hover:text-[#1B4332] transition-colors" />
-                  </div>
+              <a key={i} href={article.url} target="_blank" rel="noopener noreferrer"
+                className="bg-white rounded-xl border border-slate-100 p-4 hover:shadow-md hover:-translate-y-1 transition-all group block">
+                <div className="flex justify-between text-[10px] font-bold text-[#2D6A4F] mb-1">
+                  <span>{article.source}</span>
+                  <span className="text-slate-400">{article.date}</span>
                 </div>
-                <h3 className="font-bold text-sm text-[#0F172A] leading-snug mb-1 group-hover:text-[#1B4332] transition-colors">
-                  {article.headline}
-                </h3>
-                <p className="text-xs text-slate-500 leading-relaxed">{article.summary}</p>
+                <h3 className="font-bold text-sm leading-snug mb-1 group-hover:text-[#1B4332]">{article.headline}</h3>
+                <p className="text-xs text-slate-500">{article.summary}</p>
               </a>
             ))}
           </div>
