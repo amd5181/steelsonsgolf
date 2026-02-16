@@ -5,12 +5,12 @@ import { API } from '../App';
 import { Calendar, Users, Clock, Loader2, ExternalLink, Newspaper } from 'lucide-react';
 import { Badge } from '../components/ui/badge';
 
-// --- CONFIG & HELPERS ---
 const SLOT_NAMES = ['Masters', 'PGA Championship', 'U.S. Open', 'The Open'];
 
+// --- HELPERS ---
 function formatDate(dateStr) {
   if (!dateStr) return 'TBD';
-  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
 function formatDeadline(dateStr) {
@@ -20,54 +20,29 @@ function formatDeadline(dateStr) {
          d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 }
 
-// Logic for the 8am/8pm Eastern Time Refresh
+// Logic: Refresh only if we don't have data, OR if it's past a refresh milestone (8am/8pm ET)
 function shouldRefreshNews() {
   const lastUpdate = localStorage.getItem('golf_news_timestamp');
-  if (!lastUpdate) return true;
+  const cachedData = localStorage.getItem('golf_news_data');
+  
+  if (!lastUpdate || !cachedData) return true;
 
   const now = new Date();
   const last = new Date(parseInt(lastUpdate));
   
-  // Convert current time to Eastern Time hours (roughly)
-  const etOffset = -5; // Default ET. Adjust to -4 for DST if precision is vital.
-  const currentHourET = (now.getUTCHours() + etOffset + 24) % 24;
+  // Current hour in Eastern Time (approximate)
+  const currentHourET = (now.getUTCHours() - 5 + 24) % 24; 
   
-  // Define update milestones: 8 (8am) and 20 (8pm)
-  const milestones = [8, 20];
-  
-  // Find the most recent milestone that has passed
-  const lastMilestonePassed = milestones.reverse().find(m => currentHourET >= m) || 0;
-  
-  // If the last update happened before the most recent milestone passed, refresh!
+  // Refresh milestones (8am and 8pm)
+  const refreshTimes = [8, 20];
+  const lastMilestone = [...refreshTimes].reverse().find(h => currentHourET >= h) || 0;
+
   const milestoneDate = new Date(now);
-  milestoneDate.setHours(lastMilestonePassed, 0, 0, 0);
-  
+  milestoneDate.setHours(lastMilestone, 0, 0, 0);
+
   return last < milestoneDate;
 }
 
-async function fetchESPNNews() {
-  try {
-    const res = await axios.get('https://site.api.espn.com/apis/site/v2/sports/golf/news');
-    const articles = res.data.articles.slice(0, 4).map(item => ({
-      headline: item.headline,
-      summary: item.description,
-      source: 'ESPN',
-      url: item.links.web.href,
-      date: new Date(item.published).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-    }));
-
-    // Cache with timestamp
-    localStorage.setItem('golf_news_data', JSON.stringify(articles));
-    localStorage.setItem('golf_news_timestamp', Date.now().toString());
-    
-    return articles;
-  } catch (err) {
-    console.error("ESPN News Error:", err);
-    return [];
-  }
-}
-
-// --- COMPONENT ---
 export default function HomePage() {
   const [tournaments, setTournaments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -79,30 +54,54 @@ export default function HomePage() {
   useEffect(() => {
     axios.get(`${API}/tournaments`)
       .then(r => setTournaments(r.data))
-      .catch(() => {})
+      .catch(err => console.error("Tourney Load Error:", err))
       .finally(() => setLoading(false));
   }, []);
 
-  // 2. Controlled News Fetch (8am / 8pm ET)
+  // 2. Fetch ESPN News with 12-hour logic
   useEffect(() => {
-    if (!shouldRefreshNews()) {
-      const cached = localStorage.getItem('golf_news_data');
-      if (cached) {
-        setNews(JSON.parse(cached));
-        setNewsLoading(false);
-        return;
-      }
-    }
+    const loadNews = async () => {
+      try {
+        if (!shouldRefreshNews()) {
+          const cached = localStorage.getItem('golf_news_data');
+          if (cached) {
+            setNews(JSON.parse(cached));
+            setNewsLoading(false);
+            return;
+          }
+        }
 
-    fetchESPNNews().then(data => {
-      setNews(data);
-      setNewsLoading(false);
-    });
+        const res = await axios.get('https://site.api.espn.com/apis/site/v2/sports/golf/news');
+        const articles = res.data.articles.slice(0, 4).map(item => ({
+          headline: item.headline,
+          summary: item.description,
+          url: item.links?.web?.href || 'https://www.espn.com/golf/',
+          date: new Date(item.published).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        }));
+
+        setNews(articles);
+        localStorage.setItem('golf_news_data', JSON.stringify(articles));
+        localStorage.setItem('golf_news_timestamp', Date.now().toString());
+      } catch (err) {
+        console.error("ESPN API Error:", err);
+        // Fallback so it's not blank
+        setNews([{
+          headline: "Visit ESPN Golf for Live Coverage",
+          summary: "Check the latest leaderboards and news directly on ESPN.",
+          url: "https://www.espn.com/golf/",
+          date: "Live"
+        }]);
+      } finally {
+        setNewsLoading(false);
+      }
+    };
+
+    loadNews();
   }, []);
 
   const allSlots = [1, 2, 3, 4].map(slot => {
     const t = tournaments.find(x => x.slot === slot);
-    return t || { slot, name: SLOT_NAMES[slot - 1], status: 'setup', team_count: 0, start_date: '', end_date: '', deadline: '' };
+    return t || { slot, name: SLOT_NAMES[slot - 1], status: 'upcoming', team_count: 0, start_date: '', end_date: '', deadline: '' };
   });
 
   if (loading) return (
@@ -112,63 +111,58 @@ export default function HomePage() {
   );
 
   return (
-    <div className="p-4 md:p-8 max-w-5xl mx-auto animate-fade-in">
+    <div className="p-4 md:p-8 max-w-5xl mx-auto">
       <div className="mb-8">
-        <h1 className="font-heading font-extrabold text-4xl text-[#0F172A] tracking-tight">THE MAJORS</h1>
-        <p className="text-slate-500 mt-1">Four tournaments. One Champion.</p>
+        <h1 className="font-heading font-extrabold text-4xl text-[#0F172A]">THE MAJORS</h1>
+        <p className="text-slate-500">Four tournaments. One champion.</p>
       </div>
 
-      {/* Tournament Cards */}
+      {/* TOURNAMENT GRID */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-12">
         {allSlots.map((t) => (
           <div key={t.slot} onClick={() => t.id && navigate('/teams')}
-            className="bg-white rounded-xl border border-slate-100 shadow-sm p-5 hover:shadow-lg transition-all cursor-pointer group relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-1 h-full bg-[#1B4332]" />
+            className="bg-white rounded-xl border border-slate-100 shadow-sm p-5 hover:shadow-md transition-all cursor-pointer group">
             <div className="flex justify-between items-start mb-4">
-              <div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Major {t.slot}</span>
-                <h2 className="font-heading font-bold text-xl group-hover:text-[#1B4332]">{t.name}</h2>
-              </div>
-              <Badge className={t.status === 'prices_set' ? 'bg-emerald-500' : 'bg-slate-200 text-slate-600'}>
+              <h2 className="font-heading font-bold text-xl group-hover:text-[#1B4332]">{t.name}</h2>
+              <Badge className={t.status === 'prices_set' ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-500'}>
                 {t.status === 'prices_set' ? 'Open' : 'Upcoming'}
               </Badge>
             </div>
             <div className="space-y-2 text-sm text-slate-500">
               <div className="flex items-center gap-2"><Calendar className="w-4 h-4" /> {formatDate(t.start_date)}</div>
-              <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-amber-500" /> Deadline: <b>{formatDeadline(t.deadline)}</b></div>
-              <div className="flex items-center gap-2"><Users className="w-4 h-4" /> {t.team_count} teams entered</div>
+              <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-amber-500" /> Deadline: {formatDeadline(t.deadline)}</div>
+              <div className="flex items-center gap-2"><Users className="w-4 h-4" /> {t.team_count} teams</div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* ESPN News Section */}
+      {/* NEWS SECTION */}
       <div className="pt-6 border-t border-slate-100">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
             <Newspaper className="w-5 h-5 text-[#1B4332]" />
             <h2 className="font-heading font-bold text-xl uppercase tracking-tight">ESPN News</h2>
           </div>
-          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Updated 2x Daily</span>
+          <span className="text-[10px] text-slate-400 font-bold uppercase">Updated 2x Daily</span>
         </div>
 
         {newsLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {[1,2,3,4].map(i => <div key={i} className="h-24 bg-slate-50 rounded-xl animate-pulse" />)}
+            <div className="h-24 bg-slate-50 rounded-xl animate-pulse" />
+            <div className="h-24 bg-slate-50 rounded-xl animate-pulse" />
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {news.map((article, i) => (
               <a key={i} href={article.url} target="_blank" rel="noopener noreferrer"
-                className="group flex flex-col bg-slate-50/50 rounded-xl p-4 border border-transparent hover:border-[#1B4332]/20 hover:bg-white hover:shadow-md transition-all">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-[10px] font-black text-[#1B4332]">{article.source}</span>
-                  <span className="text-[10px] text-slate-400 font-bold">{article.date}</span>
+                className="bg-slate-50/50 rounded-xl p-4 border border-transparent hover:border-[#1B4332]/20 hover:bg-white hover:shadow-md transition-all group">
+                <div className="flex justify-between text-[10px] font-bold text-[#1B4332] mb-1">
+                  <span>ESPN</span>
+                  <span className="text-slate-400">{article.date}</span>
                 </div>
-                <h3 className="font-bold text-sm leading-snug text-[#0F172A] group-hover:underline mb-1">
-                  {article.headline}
-                </h3>
-                <p className="text-xs text-slate-500 line-clamp-2">{article.summary}</p>
+                <h3 className="font-bold text-sm leading-snug group-hover:underline">{article.headline}</h3>
+                <p className="text-xs text-slate-500 line-clamp-2 mt-1">{article.summary}</p>
               </a>
             ))}
           </div>
