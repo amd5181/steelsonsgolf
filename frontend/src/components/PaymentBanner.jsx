@@ -2,7 +2,8 @@
 // Props: compact (bool) — smaller version for My Teams
 export default function PaymentBanner({ compact = false }) {
   return (
-    <div className={`bg-gradient-to-r from-[#1B4332]/5 to-[#2D6A4F]/5 border border-[#1B4332]/15 rounded-xl flex items-center justify-between gap-4 ${compact ? 'px-4 py-3' : 'px-5 py-4'}`}>
+    <div className={`bg-gradient-to-r from-[#1B4332]/5 to-[#2D6A4F]/5 border border-[#1B4332]/15 rounded-xl ${compact ? 'px-4 py-3' : 'px-5 py-4'}`}>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
       <div>
         <p className={`font-bold text-[#0F172A] ${compact ? 'text-sm' : 'text-base'}`}>
           Entry Fee: <span className="text-[#1B4332]">$20 / team</span>
@@ -11,7 +12,7 @@ export default function PaymentBanner({ compact = false }) {
         </p>
         {!compact && <p className="text-xs text-slate-500 mt-0.5">Pay via Venmo or PayPal after submitting your team(s).</p>}
       </div>
-      <div className="flex items-center gap-2 flex-shrink-0">
+      <div className="flex items-center gap-2">
         {/* Venmo */}
         <a href="https://venmo.com/u/amd5181" target="_blank" rel="noopener noreferrer"
           title="Pay with Venmo"
@@ -30,6 +31,7 @@ export default function PaymentBanner({ compact = false }) {
           </svg>
           PayPal
         </a>
+      </div>
       </div>
     </div>
   );

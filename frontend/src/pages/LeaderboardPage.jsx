@@ -147,12 +147,14 @@ export default function LeaderboardPage() {
         team.rank === 2 ? 'bg-slate-100 text-slate-600' :
         team.rank === 3 ? 'bg-amber-100 text-amber-700' : 'bg-slate-50 text-slate-400'
       }`}>{team.rank}</div>
-      <span className="flex-1 text-sm font-medium text-[#0F172A] truncate mr-1">{team.team_name}</span>
-      {team.paid
-        ? <span className="flex-shrink-0 text-[9px] font-bold bg-emerald-100 text-emerald-700 rounded-full px-1.5 py-0.5 border border-emerald-200 mr-1">PAID</span>
-        : <span className="flex-shrink-0 text-[9px] font-bold bg-red-100 text-red-500 rounded-full px-1.5 py-0.5 border border-red-200 animate-pulse mr-1">UNPAID</span>
-      }
-      <span className="font-numbers font-bold text-sm text-[#1B4332] ml-1">
+      <div className="flex-1 flex items-center gap-1.5 min-w-0 mr-2">
+        <span className="text-sm font-medium text-[#0F172A] truncate">{team.team_name}</span>
+        {team.paid
+          ? <span className="flex-shrink-0 text-[9px] font-bold bg-emerald-100 text-emerald-700 rounded-full px-1.5 py-0.5 border border-emerald-200">PAID</span>
+          : <span className="flex-shrink-0 text-[9px] font-bold bg-red-100 text-red-500 rounded-full px-1.5 py-0.5 border border-red-200 animate-pulse">UNPAID</span>
+        }
+      </div>
+      <span className="font-numbers font-bold text-sm text-[#1B4332]">
         {typeof team.total_points === 'number' ? team.total_points.toFixed(2) : team.total_points}
       </span>
       <span className="text-xs text-slate-400 ml-1">pts</span>
