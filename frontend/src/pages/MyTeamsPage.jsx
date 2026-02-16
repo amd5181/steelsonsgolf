@@ -89,7 +89,6 @@ export default function MyTeamsPage() {
     setCurrentTeam([...filled, ...Array(5 - filled.length).fill(null)]);
   };
 
-  // Remove by name - used from the golfer list
   const removeGolferByName = (name) => {
     if (locked) return;
     const team = [...currentTeam];
@@ -174,23 +173,14 @@ export default function MyTeamsPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
-            {/* Team Panel */}
+            {/* Team Panel — budget bar moved to bottom, above Save */}
             <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden" data-testid={`team-${activeTeam}-panel`}>
               <div className={`px-4 py-3 flex items-center justify-between ${activeTeam === 1 ? 'bg-gradient-to-r from-[#1B4332] to-[#2D6A4F]' : 'bg-gradient-to-r from-[#2D6A4F] to-[#1B4332]'}`}>
                 <span className="text-white font-heading font-bold text-sm uppercase tracking-wider">{user.name}'s Team {activeTeam}</span>
                 {!locked && <button onClick={clearTeam} className="text-white/60 hover:text-white" data-testid={`clear-team-${activeTeam}`}><Trash2 className="w-4 h-4" /></button>}
               </div>
-              <div className="px-4 py-2 bg-slate-50 border-b border-slate-100">
-                <div className="flex justify-between text-xs font-semibold mb-1">
-                  <span className={over ? 'text-red-500' : 'text-slate-500'}><DollarSign className="w-3.5 h-3.5 inline" />{fmt(currentCost)} / {fmt(BUDGET)}</span>
-                  <span className={over ? 'text-red-500 font-bold' : 'text-[#1B4332] font-bold'}>
-                    {over ? <><AlertTriangle className="w-3.5 h-3.5 inline mr-0.5" />OVER {fmt(currentCost - BUDGET)}</> : `${fmt(remaining)} left`}
-                  </span>
-                </div>
-                <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
-                  <div className={`h-full rounded-full budget-bar ${over ? 'bg-red-500' : 'bg-[#1B4332]'}`} style={{ width: `${pct}%` }} />
-                </div>
-              </div>
+
+              {/* Team Slots */}
               <div className="divide-y divide-slate-50">
                 {currentTeam.map((g, i) => (
                   <div key={i} className="flex items-center px-4 py-3 min-h-[52px]" data-testid={`team-${activeTeam}-slot-${i}`}>
@@ -208,6 +198,21 @@ export default function MyTeamsPage() {
                   </div>
                 ))}
               </div>
+
+              {/* Budget Bar — now at bottom above Save */}
+              <div className="px-4 py-3 bg-slate-50 border-t border-slate-100">
+                <div className="flex justify-between text-xs font-semibold mb-1.5">
+                  <span className={over ? 'text-red-500' : 'text-slate-500'}><DollarSign className="w-3.5 h-3.5 inline" />{fmt(currentCost)} / {fmt(BUDGET)}</span>
+                  <span className={over ? 'text-red-500 font-bold' : 'text-[#1B4332] font-bold'}>
+                    {over ? <><AlertTriangle className="w-3.5 h-3.5 inline mr-0.5" />OVER {fmt(currentCost - BUDGET)}</> : `${fmt(remaining)} left`}
+                  </span>
+                </div>
+                <div className="h-2.5 bg-slate-200 rounded-full overflow-hidden">
+                  <div className={`h-full rounded-full budget-bar ${over ? 'bg-red-500' : 'bg-[#1B4332]'}`} style={{ width: `${pct}%` }} />
+                </div>
+              </div>
+
+              {/* Save Button */}
               {!locked && (
                 <div className="p-4 border-t border-slate-100">
                   <Button onClick={saveTeam} disabled={saving} data-testid={`save-team-${activeTeam}`}
