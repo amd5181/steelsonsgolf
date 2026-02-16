@@ -32,21 +32,21 @@ function getStatusBadge(status, deadline) {
 
 const SLOT_NAMES = ['Masters', 'PGA Championship', 'U.S. Open', 'The Open'];
 
-// Reliable fetcher: Sky Sports Golf provides high-quality tour news
+// Reliable fetcher: GOLF.com is 100% golf, no other sports.
 async function fetchGolfNews() {
   try {
-    const rssUrl = 'https://www.skysports.com/rss/11095';
+    const rssUrl = 'https://golf.com/feed/';
     const r = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`);
     const data = await r.json();
 
-    if (data.status !== 'ok') throw new Error('Sky Sports feed unavailable');
+    if (data.status !== 'ok') throw new Error('GOLF.com feed unavailable');
 
     return data.items.slice(0, 5).map(item => ({
       headline: item.title,
       summary: item.description 
         ? item.description.replace(/<[^>]+>/g, '').slice(0, 110).trim() + '...' 
-        : 'View the latest tournament news and leaderboards.',
-      source: 'Sky Sports',
+        : 'The latest from the PGA Tour, LIV, and more.',
+      source: 'GOLF.com',
       url: item.link,
       date: new Date(item.pubDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     }));
@@ -54,10 +54,10 @@ async function fetchGolfNews() {
     console.error("Golf News Error:", err);
     return [
       {
-        headline: "Sky Sports Golf: Live Updates",
-        summary: "Live scores and news from the PGA and LIV tours are currently unavailable.",
-        source: "Sky Sports",
-        url: "https://www.skysports.com/golf",
+        headline: "GOLF.com: Tour Updates",
+        summary: "Check the latest leaderboards and tour stories directly.",
+        source: "GOLF.com",
+        url: "https://golf.com/news/",
         date: "Live"
       }
     ];
@@ -71,7 +71,6 @@ export default function HomePage() {
   const [newsLoading, setNewsLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Tournament Fetch
   useEffect(() => {
     axios.get(`${API}/tournaments`)
       .then(r => setTournaments(r.data))
@@ -79,9 +78,9 @@ export default function HomePage() {
       .finally(() => setLoading(false));
   }, []);
 
-  // News Fetch with Cache Busting (v3)
+  // News Fetch with v4 Cache Busting
   useEffect(() => {
-    const cached = sessionStorage.getItem('golf_news_v3');
+    const cached = sessionStorage.getItem('golf_news_v4');
     if (cached) {
       setNews(JSON.parse(cached));
       setNewsLoading(false);
@@ -89,7 +88,7 @@ export default function HomePage() {
       fetchGolfNews()
         .then(articles => {
           setNews(articles);
-          sessionStorage.setItem('golf_news_v3', JSON.stringify(articles));
+          sessionStorage.setItem('golf_news_v4', JSON.stringify(articles));
         })
         .catch(() => setNews([]))
         .finally(() => setNewsLoading(false));
