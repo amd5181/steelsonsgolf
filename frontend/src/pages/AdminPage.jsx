@@ -166,14 +166,9 @@ export default function AdminPage() {
 
   return (
     <div className="p-4 md:p-8 max-w-5xl mx-auto animate-fade-in-up" data-testid="admin-page">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-10 h-10 rounded-xl bg-[#1B4332] flex items-center justify-center">
-          <Settings className="w-5 h-5 text-[#CCFF00]" />
-        </div>
-        <div>
-          <h1 className="font-heading font-extrabold text-3xl text-[#0F172A] tracking-tight">ADMIN</h1>
-          <p className="text-slate-500 text-xs">Tournament Setup & Management</p>
-        </div>
+      <div className="mb-6">
+        <h1 className="font-heading font-extrabold text-3xl sm:text-4xl text-[#0F172A] tracking-tight">ADMIN</h1>
+        <p className="text-slate-500 text-sm mt-1">Tournament Setup & Management</p>
       </div>
 
       {/* ESPN Event Search */}

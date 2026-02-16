@@ -68,8 +68,8 @@ export default function HistoryPage() {
 
   return (
     <div className="p-4 md:p-8 max-w-3xl mx-auto animate-fade-in-up" data-testid="legacy-page">
-      <h1 className="font-heading font-extrabold text-3xl sm:text-4xl text-[#0F172A] tracking-tight mb-2">BLAST FURNACE LEGENDS</h1>
-      <p className="text-slate-500 text-sm mb-6">Where legends are forged in steel.</p>
+      <h1 className="font-heading font-extrabold text-3xl sm:text-4xl text-[#0F172A] tracking-tight mb-2">FORGED IN FIRE</h1>
+      <p className="text-slate-500 text-sm mb-6">Cast in the History of Three Rivers.</p>
 
       {/* Records Section */}
       {records && (

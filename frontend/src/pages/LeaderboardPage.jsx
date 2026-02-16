@@ -230,7 +230,7 @@ export default function LeaderboardPage() {
                     </div>
 
                     {/* Golfer rows — col headers */}
-                    <div className="hidden sm:flex items-center px-4 py-1 bg-slate-50 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    <div className="flex items-center px-4 py-1 bg-slate-50 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                       <span className="w-10">Pos</span>
                       <span className="flex-1">Player</span>
                       <span className="flex gap-0.5 mr-2">
@@ -259,7 +259,7 @@ export default function LeaderboardPage() {
                           </span>
 
                           {/* Round scores — visible on sm+ */}
-                          <div className="hidden sm:flex gap-0.5 mr-2 flex-shrink-0">
+                          <div className="flex gap-0.5 mr-1 flex-shrink-0">
                             {renderRounds(g)}
                           </div>
 
@@ -299,7 +299,7 @@ export default function LeaderboardPage() {
         disabled={refreshing}
         data-testid="refresh-leaderboard"
         title="Refresh scores"
-        className="fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full bg-[#1B4332] hover:bg-[#2D6A4F] text-white shadow-lg flex items-center justify-center transition-all hover:scale-110 active:scale-95 disabled:opacity-60"
+        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-[#CCFF00] hover:bg-yellow-300 text-[#1B4332] shadow-xl flex items-center justify-center transition-all hover:scale-110 active:scale-95 disabled:opacity-60 border-2 border-[#1B4332]/20"
       >
         <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
       </button>

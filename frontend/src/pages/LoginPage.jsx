@@ -38,7 +38,7 @@ export default function LoginPage() {
     try {
       const { data } = await axios.post(`${API}/auth/register`, { name: name.trim(), email: email.trim(), pin });
       login(data);
-      toast.success(`Welcome to Fairway Fantasy, ${data.name}!`);
+      toast.success(`Welcome to Steel Sons Golf, ${data.name}!`);
       navigate('/home');
     } catch (e) {
       toast.error(e.response?.data?.detail || 'Registration failed');
