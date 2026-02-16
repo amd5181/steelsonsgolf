@@ -11,8 +11,6 @@ import AdminPage from './pages/AdminPage'
 import Layout from './components/Layout'
 import './App.css'
 
-// In production on Vercel, frontend and API are on the same domain — no env var needed.
-// For local dev, set VITE_BACKEND_URL=http://localhost:8000 in frontend/.env.local
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || ''
 export const API = `${BACKEND_URL}/api`
 
@@ -26,7 +24,7 @@ function App() {
   useEffect(() => {
     const stored = localStorage.getItem('ff_user')
     if (stored) {
-      try { setUser(JSON.parse(stored)) } catch { /* ignore */ }
+      try { setUser(JSON.parse(stored)) } catch {}
     }
     setLoading(false)
   }, [])
@@ -42,9 +40,12 @@ function App() {
       <Toaster theme="light" position="top-center" richColors />
       <BrowserRouter>
         <Routes>
+          {/* Login page still exists for direct nav, but redirects home if already logged in */}
           <Route path="/login" element={user ? <Navigate to="/home" /> : <LoginPage />} />
-          <Route path="/" element={user ? <Navigate to="/home" /> : <Navigate to="/login" />} />
-          <Route element={user ? <Layout /> : <Navigate to="/login" />}>
+          {/* Root always goes home — no auth wall */}
+          <Route path="/" element={<Navigate to="/home" />} />
+          {/* All app routes are open — Layout handles guest state */}
+          <Route element={<Layout />}>
             <Route path="/home" element={<HomePage />} />
             <Route path="/teams" element={<MyTeamsPage />} />
             <Route path="/leaderboard" element={<LeaderboardPage />} />

@@ -1,9 +1,10 @@
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Home, Users, BarChart2, Clock, BookOpen, Settings, LogOut, UserCog, Trophy } from 'lucide-react';
+import { Home, Users, BarChart2, BookOpen, Settings, LogOut, UserCog, Trophy, LogIn } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../components/ui/tooltip';
 import { useAuth } from '../App';
 import { useState } from 'react';
 import ProfileModal from './ProfileModal';
+import AuthModal from './AuthModal';
 
 const NAV_ITEMS = [
   { path: '/home',        icon: Home,     label: 'Home' },
@@ -18,21 +19,20 @@ export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [profileOpen, setProfileOpen] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
 
   const allItems = user?.is_admin
     ? [...NAV_ITEMS, { path: '/admin', icon: Settings, label: 'Admin' }]
     : NAV_ITEMS;
 
-  const handleLogout = () => { logout(); navigate('/login'); };
+  const handleLogout = () => { logout(); navigate('/home'); };
 
   return (
     <TooltipProvider delayDuration={200}>
       <div className="min-h-screen bg-background pt-16">
 
-        {/* ── Unified Top Nav ── */}
         <header className="fixed top-0 left-0 right-0 z-50 glass shadow-sm h-16 flex items-center px-3 md:px-6" data-testid="top-nav">
 
-          {/* Logo */}
           <div className="flex items-center gap-2 cursor-pointer flex-shrink-0" onClick={() => navigate('/home')}>
             <img
               src="https://images.vexels.com/media/users/3/134963/isolated/preview/7521d9cc865d48ec2dfb2a8a6286c13e-bridge-circle-icon-03.png"
@@ -45,7 +45,6 @@ export default function Layout() {
             </div>
           </div>
 
-          {/* Nav items */}
           <nav className="flex items-center gap-0.5 ml-auto">
             {allItems.map(item => {
               const active = location.pathname === item.path;
@@ -60,7 +59,6 @@ export default function Layout() {
                       }`}
                     >
                       <item.icon className={`w-4 h-4 flex-shrink-0 ${active ? 'stroke-[2.5]' : ''}`} />
-                      {/* Labels hidden on mobile, shown on md+ */}
                       <span className="hidden md:inline text-sm font-medium">{item.label}</span>
                     </button>
                   </TooltipTrigger>
@@ -71,26 +69,40 @@ export default function Layout() {
 
             <div className="w-px h-5 bg-slate-200 mx-1" />
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button data-testid="nav-profile" onClick={() => setProfileOpen(true)}
-                  className="flex items-center gap-1.5 px-2 md:px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-100 transition-all">
-                  <UserCog className="w-4 h-4" />
-                  <span className="hidden md:inline text-sm font-medium">{user?.name?.split(' ')[0]}</span>
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>Profile</TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button data-testid="nav-logout" onClick={handleLogout}
-                  className="flex items-center px-2 md:px-3 py-2 rounded-lg text-red-500 hover:bg-red-50 transition-all">
-                  <LogOut className="w-4 h-4" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>Log Out</TooltipContent>
-            </Tooltip>
+            {user ? (
+              <>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button data-testid="nav-profile" onClick={() => setProfileOpen(true)}
+                      className="flex items-center gap-1.5 px-2 md:px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-100 transition-all">
+                      <UserCog className="w-4 h-4" />
+                      <span className="hidden md:inline text-sm font-medium">{user.name?.split(' ')[0]}</span>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>Profile</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button data-testid="nav-logout" onClick={handleLogout}
+                      className="flex items-center px-2 md:px-3 py-2 rounded-lg text-red-500 hover:bg-red-50 transition-all">
+                      <LogOut className="w-4 h-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>Log Out</TooltipContent>
+                </Tooltip>
+              </>
+            ) : (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button data-testid="nav-signin" onClick={() => setAuthOpen(true)}
+                    className="flex items-center gap-1.5 px-2 md:px-3 py-2 rounded-lg bg-[#1B4332] text-white hover:bg-[#2D6A4F] transition-all">
+                    <LogIn className="w-4 h-4" />
+                    <span className="hidden md:inline text-sm font-medium">Sign In</span>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>Sign In / Create Account</TooltipContent>
+              </Tooltip>
+            )}
           </nav>
         </header>
 
@@ -99,7 +111,8 @@ export default function Layout() {
         </main>
       </div>
 
-      <ProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
+      {user && <ProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />}
+      <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
     </TooltipProvider>
   );
 }

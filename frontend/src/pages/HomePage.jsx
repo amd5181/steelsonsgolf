@@ -2,14 +2,13 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API } from '../App';
-import { Calendar, Users, Clock, ChevronRight, Loader2 } from 'lucide-react';
+import { Calendar, Users, Clock, ChevronRight, Loader2, ExternalLink, Newspaper } from 'lucide-react';
 import { Badge } from '../components/ui/badge';
 
 function formatDate(dateStr) {
   if (!dateStr) return 'TBD';
-  try {
-    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  } catch { return 'TBD'; }
+  try { return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
+  catch { return 'TBD'; }
 }
 
 function formatDeadline(dateStr) {
@@ -24,11 +23,7 @@ function formatDeadline(dateStr) {
 function getStatusBadge(status, deadline) {
   if (status === 'completed') return { text: 'Completed', cls: 'bg-slate-500 text-white' };
   if (status === 'prices_set') {
-    if (deadline) {
-      try {
-        if (new Date() > new Date(deadline)) return { text: 'Locked', cls: 'bg-amber-500 text-white' };
-      } catch {}
-    }
+    if (deadline) { try { if (new Date() > new Date(deadline)) return { text: 'Locked', cls: 'bg-amber-500 text-white' }; } catch {} }
     return { text: 'Open', cls: 'bg-emerald-500 text-white' };
   }
   if (status === 'golfers_loaded') return { text: 'Setting Up', cls: 'bg-blue-500 text-white' };
@@ -37,13 +32,55 @@ function getStatusBadge(status, deadline) {
 
 const SLOT_NAMES = ['Masters', 'PGA Championship', 'U.S. Open', 'The Open'];
 
+// Fetch golf news from Anthropic API with web search
+async function fetchGolfNews() {
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+      system: `You are a golf news curator. Search for the 4 most recent, significant golf news stories from the past 7 days. 
+Return ONLY a JSON array (no markdown, no preamble) with exactly this structure:
+[
+  {
+    "headline": "Short punchy headline under 10 words",
+    "summary": "One sentence summary under 20 words",
+    "source": "Publication name",
+    "url": "https://actual-article-url",
+    "date": "MMM D, YYYY"
+  }
+]
+Focus on: PGA Tour results, major championship news, player news, world rankings. No tabloid or gossip. Real golf journalism only.`,
+      messages: [{ role: 'user', content: 'Find the 4 most recent important golf news stories from this week.' }],
+    })
+  });
+  const data = await response.json();
+  const text = data.content
+    .filter(b => b.type === 'text')
+    .map(b => b.text)
+    .join('');
+  const clean = text.replace(/```json|```/g, '').trim();
+  return JSON.parse(clean);
+}
+
 export default function HomePage() {
   const [tournaments, setTournaments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [news, setNews] = useState([]);
+  const [newsLoading, setNewsLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
     axios.get(`${API}/tournaments`).then(r => setTournaments(r.data)).catch(() => {}).finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    fetchGolfNews()
+      .then(articles => setNews(articles))
+      .catch(() => setNews([]))
+      .finally(() => setNewsLoading(false));
   }, []);
 
   const allSlots = [1, 2, 3, 4].map(slot => {
@@ -59,6 +96,7 @@ export default function HomePage() {
 
   return (
     <div className="p-4 md:p-8 max-w-5xl mx-auto animate-fade-in-up">
+      {/* Tournaments */}
       <div className="mb-6">
         <h1 className="font-heading font-extrabold text-3xl sm:text-4xl text-[#0F172A] tracking-tight" data-testid="home-title">
           THE MAJORS
@@ -66,12 +104,12 @@ export default function HomePage() {
         <p className="text-slate-500 text-sm mt-1">Four tournaments. Infinite glory.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 stagger" data-testid="tournament-grid">
-        {allSlots.map((t, idx) => {
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10 stagger" data-testid="tournament-grid">
+        {allSlots.map((t) => {
           const badge = getStatusBadge(t.status, t.deadline);
           return (
             <div key={t.slot}
-              className="bg-white rounded-xl border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.06)] hover:shadow-[0_8px_24px_rgba(27,67,50,0.12)] transition-all duration-300 overflow-hidden group cursor-pointer animate-fade-in-up"
+              className="bg-white rounded-xl border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.06)] hover:shadow-[0_8px_24px_rgba(27,67,50,0.12)] transition-all duration-300 overflow-hidden group cursor-pointer"
               data-testid={`tournament-card-${t.slot}`}
               onClick={() => t.id ? navigate('/teams') : null}
             >
@@ -107,6 +145,55 @@ export default function HomePage() {
             </div>
           );
         })}
+      </div>
+
+      {/* Golf News */}
+      <div>
+        <div className="flex items-center gap-2 mb-4">
+          <Newspaper className="w-5 h-5 text-[#1B4332]" />
+          <h2 className="font-heading font-bold text-xl text-[#0F172A] tracking-tight">GOLF NEWS</h2>
+          <span className="text-xs text-slate-400 font-medium ml-1">· updated each visit</span>
+        </div>
+
+        {newsLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {[1,2,3,4].map(i => (
+              <div key={i} className="bg-white rounded-xl border border-slate-100 p-4 animate-pulse">
+                <div className="h-4 bg-slate-100 rounded w-3/4 mb-2" />
+                <div className="h-3 bg-slate-100 rounded w-full mb-1" />
+                <div className="h-3 bg-slate-100 rounded w-2/3" />
+              </div>
+            ))}
+          </div>
+        ) : news.length === 0 ? (
+          <div className="bg-white rounded-xl border border-slate-100 p-6 text-center">
+            <p className="text-slate-400 text-sm">Couldn't load news right now. Check back soon.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {news.map((article, i) => (
+              <a
+                key={i}
+                href={article.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 hover:shadow-md hover:border-[#1B4332]/20 transition-all group block"
+              >
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <span className="text-[10px] font-bold text-[#2D6A4F] uppercase tracking-wider">{article.source}</span>
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <span className="text-[10px] text-slate-400">{article.date}</span>
+                    <ExternalLink className="w-3 h-3 text-slate-300 group-hover:text-[#1B4332] transition-colors" />
+                  </div>
+                </div>
+                <h3 className="font-bold text-sm text-[#0F172A] leading-snug mb-1 group-hover:text-[#1B4332] transition-colors">
+                  {article.headline}
+                </h3>
+                <p className="text-xs text-slate-500 leading-relaxed">{article.summary}</p>
+              </a>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
