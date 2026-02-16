@@ -160,16 +160,10 @@ export default function MyTeamsPage() {
             <p className="text-sm font-bold text-[#1B4332]">Build your team — no account needed</p>
             <p className="text-xs text-slate-500 mt-0.5">Sign in or create a free account to save your picks and compete.</p>
           </div>
-          <div className="flex gap-2 flex-shrink-0">
-            <button onClick={() => { setAuthMode('register'); setAuthOpen(true); }}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#1B4332] text-white text-xs font-bold hover:bg-[#2D6A4F] transition-colors">
-              <UserPlus className="w-3.5 h-3.5" />Create Account
-            </button>
-            <button onClick={() => { setAuthMode('login'); setAuthOpen(true); }}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#1B4332] text-[#1B4332] text-xs font-bold hover:bg-[#1B4332]/5 transition-colors">
-              <LogIn className="w-3.5 h-3.5" />Sign In
-            </button>
-          </div>
+          <button onClick={() => { setAuthMode('login'); setAuthOpen(true); }}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#1B4332] text-white text-xs font-bold hover:bg-[#2D6A4F] transition-colors flex-shrink-0">
+            <LogIn className="w-3.5 h-3.5" />Sign In / Create Account
+          </button>
         </div>
       )}
 

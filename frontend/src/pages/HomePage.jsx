@@ -32,37 +32,23 @@ function getStatusBadge(status, deadline) {
 
 const SLOT_NAMES = ['Masters', 'PGA Championship', 'U.S. Open', 'The Open'];
 
-// Fetch golf news from Anthropic API with web search
+// Fetch golf news from Yahoo Sports RSS via rss2json proxy (no API key needed)
 async function fetchGolfNews() {
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1000,
-      tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-      system: `You are a golf news curator. Search for the 4 most recent, significant golf news stories from the past 7 days. 
-Return ONLY a JSON array (no markdown, no preamble) with exactly this structure:
-[
-  {
-    "headline": "Short punchy headline under 10 words",
-    "summary": "One sentence summary under 20 words",
-    "source": "Publication name",
-    "url": "https://actual-article-url",
-    "date": "MMM D, YYYY"
-  }
-]
-Focus on: PGA Tour results, major championship news, player news, world rankings. No tabloid or gossip. Real golf journalism only.`,
-      messages: [{ role: 'user', content: 'Find the 4 most recent important golf news stories from this week.' }],
-    })
-  });
-  const data = await response.json();
-  const text = data.content
-    .filter(b => b.type === 'text')
-    .map(b => b.text)
-    .join('');
-  const clean = text.replace(/```json|```/g, '').trim();
-  return JSON.parse(clean);
+  const rssUrl = encodeURIComponent('https://sports.yahoo.com/golf/news/rss.xml');
+  const r = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${rssUrl}&count=5`);
+  const data = await r.json();
+  if (data.status !== 'ok') throw new Error('RSS fetch failed');
+  return data.items.map(item => ({
+    headline: item.title,
+    summary: item.description
+      ? item.description.replace(/<[^>]+>/g, '').slice(0, 120).trim() + '...'
+      : '',
+    source: 'Yahoo Sports Golf',
+    url: item.link,
+    date: item.pubDate
+      ? new Date(item.pubDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+      : '',
+  }));
 }
 
 export default function HomePage() {

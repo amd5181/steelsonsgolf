@@ -1,5 +1,5 @@
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Home, Users, BarChart2, BookOpen, Settings, LogOut, UserCog, Trophy, LogIn } from 'lucide-react';
+import { Home, Users, BarChart2, BookOpen, Settings, UserCog, Trophy, LogIn } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../components/ui/tooltip';
 import { useAuth } from '../App';
 import { useState } from 'react';
@@ -15,7 +15,7 @@ const NAV_ITEMS = [
 ];
 
 export default function Layout() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [profileOpen, setProfileOpen] = useState(false);
@@ -24,8 +24,6 @@ export default function Layout() {
   const allItems = user?.is_admin
     ? [...NAV_ITEMS, { path: '/admin', icon: Settings, label: 'Admin' }]
     : NAV_ITEMS;
-
-  const handleLogout = () => { logout(); navigate('/home'); };
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -79,16 +77,7 @@ export default function Layout() {
                       <span className="hidden md:inline text-sm font-medium">{user.name?.split(' ')[0]}</span>
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent>Profile</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button data-testid="nav-logout" onClick={handleLogout}
-                      className="flex items-center px-2 md:px-3 py-2 rounded-lg text-red-500 hover:bg-red-50 transition-all">
-                      <LogOut className="w-4 h-4" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent>Log Out</TooltipContent>
+                  <TooltipContent>Profile & Log Out</TooltipContent>
                 </Tooltip>
               </>
             ) : (
