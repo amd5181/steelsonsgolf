@@ -32,39 +32,33 @@ function getStatusBadge(status, deadline) {
 
 const SLOT_NAMES = ['Masters', 'PGA Championship', 'U.S. Open', 'The Open'];
 
-// Improved fetcher: Targets official sites and handles errors gracefully
+// Reliable fetcher: Sky Sports Golf provides high-quality tour news
 async function fetchGolfNews() {
   try {
-    // Golf Digest is the gold standard for clean, professional golf news
-    const rssUrl = 'http://www.golfdigest.com/services/rss/feeds/gd_everything.xml';
-    
-    // We use the rss2json service to turn their XML into a clean JSON object
+    const rssUrl = 'https://www.skysports.com/rss/11095';
     const r = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`);
     const data = await r.json();
 
-    if (data.status !== 'ok') throw new Error('Golf Digest feed unavailable');
+    if (data.status !== 'ok') throw new Error('Sky Sports feed unavailable');
 
-    // Pull the top 5 most recent articles
     return data.items.slice(0, 5).map(item => ({
       headline: item.title,
-      // We clean up the summary: remove HTML tags and trim to size
       summary: item.description 
-        ? item.description.replace(/<[^>]+>/g, '').slice(0, 100).trim() + '...' 
-        : 'Read the full story on Golf Digest.',
-      source: 'Golf Digest',
+        ? item.description.replace(/<[^>]+>/g, '').slice(0, 110).trim() + '...' 
+        : 'View the latest tournament news and leaderboards.',
+      source: 'Sky Sports',
       url: item.link,
       date: new Date(item.pubDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     }));
   } catch (err) {
     console.error("Golf News Error:", err);
-    // Safety Net Fallback
     return [
       {
-        headline: "Check the Latest from Golf Digest",
-        summary: "We're having trouble loading the live feed. Visit the official site for major news.",
-        source: "Golf Digest",
-        url: "https://www.golfdigest.com/",
-        date: "Today"
+        headline: "Sky Sports Golf: Live Updates",
+        summary: "Live scores and news from the PGA and LIV tours are currently unavailable.",
+        source: "Sky Sports",
+        url: "https://www.skysports.com/golf",
+        date: "Live"
       }
     ];
   }
@@ -85,9 +79,9 @@ export default function HomePage() {
       .finally(() => setLoading(false));
   }, []);
 
-  // News Fetch with Session Caching
+  // News Fetch with Cache Busting (v3)
   useEffect(() => {
-    const cached = sessionStorage.getItem('golf_news_cache');
+    const cached = sessionStorage.getItem('golf_news_v3');
     if (cached) {
       setNews(JSON.parse(cached));
       setNewsLoading(false);
@@ -95,7 +89,7 @@ export default function HomePage() {
       fetchGolfNews()
         .then(articles => {
           setNews(articles);
-          sessionStorage.setItem('golf_news_cache', JSON.stringify(articles));
+          sessionStorage.setItem('golf_news_v3', JSON.stringify(articles));
         })
         .catch(() => setNews([]))
         .finally(() => setNewsLoading(false));
