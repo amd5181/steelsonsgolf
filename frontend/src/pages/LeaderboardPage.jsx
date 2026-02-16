@@ -101,9 +101,9 @@ export default function LeaderboardPage() {
       if (isCut && ri >= 2) return <span key={ri} className="w-7 text-center font-numbers text-[10px] text-red-400 font-bold">CUT</span>;
       if (hasScore) {
         const isCurrentRound = golfer.is_active && ri === rounds.length - 1;
-        return <span key={ri} className={`w-7 text-center font-numbers text-[10px] ${isCurrentRound ? 'text-green-600 font-bold' : 'text-slate-400'}`}>{round.score}</span>;
+        return <span key={ri} className={`w-6 text-center font-numbers text-[10px] ${isCurrentRound ? 'text-green-600 font-bold' : 'text-slate-400'}`}>{round.score}</span>;
       }
-      return <span key={ri} className="w-7 text-center font-numbers text-[10px] text-slate-200">-</span>;
+      return <span key={ri} className="w-6 text-center font-numbers text-[10px] text-slate-200">-</span>;
     });
   };
 
@@ -228,7 +228,11 @@ export default function LeaderboardPage() {
                       <span className="text-xs text-slate-400 font-semibold">{standings.length} teams</span>
                       <button
                         onClick={() => setExpanded(e => !e)}
-                        className="flex items-center gap-1.5 text-xs font-bold text-[#1B4332] hover:text-[#2D6A4F] transition-colors px-3 py-1.5 rounded-lg hover:bg-[#1B4332]/5"
+                        className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border-2 transition-all ${
+                          expanded
+                            ? 'bg-white text-[#1B4332] border-[#1B4332] hover:bg-[#1B4332] hover:text-white'
+                            : 'bg-[#1B4332] text-white border-[#1B4332] hover:bg-[#2D6A4F]'
+                        }`}
                       >
                         {expanded
                           ? <><List className="w-3.5 h-3.5" />Collapse</>
@@ -264,39 +268,42 @@ export default function LeaderboardPage() {
                         </div>
 
                         <div className="flex items-center px-4 py-1 bg-slate-50 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                          <span className="w-10">Pos</span>
+                          <span className="hidden sm:block w-10">Pos</span>
                           <span className="flex-1">Player</span>
-                          <div className="flex gap-0.5 mr-2">
-                            <span className="w-7 text-center">R1</span>
-                            <span className="w-7 text-center">R2</span>
-                            <span className="w-7 text-center">R3</span>
-                            <span className="w-7 text-center">R4</span>
+                          <div className="flex gap-0.5 mr-1">
+                            <span className="w-6 text-center">R1</span>
+                            <span className="w-6 text-center">R2</span>
+                            <span className="w-6 text-center">R3</span>
+                            <span className="w-6 text-center">R4</span>
                           </div>
-                          <span className="w-10 text-right">Tot</span>
-                          <span className="w-10 text-center">Thru</span>
-                          <span className="w-12 text-right">Pts</span>
+                          <span className="w-8 text-right">Tot</span>
+                          <span className="w-9 text-center">Thru</span>
+                          <span className="w-11 text-right">Pts</span>
                         </div>
 
                         <div className="divide-y divide-slate-50">
                           {team.golfers.map((g, i) => (
                             <div key={i} className="flex items-center px-4 py-1.5 text-xs">
-                              <span className={`w-10 font-numbers font-bold flex-shrink-0 ${g.is_cut ? 'text-red-400' : g.is_active ? 'text-green-500 pulse-active' : 'text-slate-500'}`}>
+                              {/* POS — hidden on mobile */}
+                              <span className={`hidden sm:block w-10 font-numbers font-bold flex-shrink-0 ${g.is_cut ? 'text-red-400' : g.is_active ? 'text-green-500 pulse-active' : 'text-slate-500'}`}>
                                 {g.is_cut ? 'CUT' : g.position || '-'}{g.is_active && !g.is_cut && '*'}
                               </span>
-                              <span className="flex-1 font-medium text-[#0F172A] truncate min-w-0">
+                              {/* Name — full name on all sizes now that POS is hidden on mobile */}
+                              <span className="flex-1 font-medium text-[#0F172A] truncate min-w-0 mr-1">
                                 <span className="sm:hidden">{abbrevName(g.name)}</span>
                                 <span className="hidden sm:inline">{g.name}</span>
                               </span>
+                              {/* Round scores — w-6 on mobile, w-7 on sm+ */}
                               <div className="flex gap-0.5 mr-1 flex-shrink-0">
                                 {renderRounds(g)}
                               </div>
-                              <span className={`w-10 text-right font-numbers flex-shrink-0 ${g.total_score === '-' ? 'text-slate-300' : 'text-slate-600'}`}>
+                              <span className={`w-8 text-right font-numbers flex-shrink-0 ${g.total_score === '-' ? 'text-slate-300' : 'text-slate-600'}`}>
                                 {g.total_score}
                               </span>
-                              <span className="w-10 text-center flex-shrink-0 flex items-center justify-center">
+                              <span className="w-9 text-center flex-shrink-0 flex items-center justify-center">
                                 {renderThruCell(g)}
                               </span>
-                              <span className="w-12 text-right font-numbers font-bold text-[#1B4332] flex-shrink-0">
+                              <span className="w-11 text-right font-numbers font-bold text-[#1B4332] flex-shrink-0">
                                 {typeof g.total_points === 'number' ? g.total_points.toFixed(2) : g.total_points}
                               </span>
                             </div>
