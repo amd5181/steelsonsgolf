@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API } from '../App';
-import { Calendar, Users, Clock, ChevronRight, Loader2, ExternalLink, Newspaper } from 'lucide-react';
+import { Calendar, Users, Clock, Loader2 } from 'lucide-react';
 import { Badge } from '../components/ui/badge';
 
 function formatDate(dateStr) {
@@ -32,51 +32,9 @@ function getStatusBadge(status, deadline) {
 
 const SLOT_NAMES = ['Masters', 'PGA Championship', 'U.S. Open', 'The Open'];
 
-// Improved fetcher: Targets official sites and handles errors gracefully
-async function fetchGolfNews() {
-  try {
-    // Search specifically for official PGA and LIV domains for diversity
-    const query = encodeURIComponent('site:pgatour.com OR site:livgolf.com');
-    const rssUrl = `https://news.google.com/rss/search?q=${query}&hl=en-US&gl=US&ceid=US:en`;
-    
-    const r = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`);
-    const data = await r.json();
-
-    if (data.status !== 'ok') throw new Error('News feed unavailable');
-
-    return data.items.slice(0, 5).map(item => ({
-      headline: item.title.split(' - ')[0], // Removes " - Source Name" from headline
-      summary: "Latest official update from the professional tours.",
-      source: item.author || item.source?.name || 'Pro Golf',
-      url: item.link,
-      date: new Date(item.pubDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-    }));
-  } catch (err) {
-    console.error("Golf News Error:", err);
-    return [
-      {
-        headline: "PGA Tour: Latest News",
-        summary: "Check the latest leaderboards and stories from the PGA Tour.",
-        source: "PGA",
-        url: "https://www.pgatour.com/news",
-        date: "Live"
-      },
-      {
-        headline: "LIV Golf: Latest News",
-        summary: "The latest team standings and individual news from LIV.",
-        source: "LIV",
-        url: "https://www.livgolf.com/news",
-        date: "Live"
-      }
-    ];
-  }
-}
-
 export default function HomePage() {
   const [tournaments, setTournaments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [news, setNews] = useState([]);
-  const [newsLoading, setNewsLoading] = useState(true);
   const navigate = useNavigate();
 
   // Tournament Fetch
@@ -85,23 +43,6 @@ export default function HomePage() {
       .then(r => setTournaments(r.data))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
-
-  // News Fetch with Session Caching
-  useEffect(() => {
-    const cached = sessionStorage.getItem('golf_news_cache');
-    if (cached) {
-      setNews(JSON.parse(cached));
-      setNewsLoading(false);
-    } else {
-      fetchGolfNews()
-        .then(articles => {
-          setNews(articles);
-          sessionStorage.setItem('golf_news_cache', JSON.stringify(articles));
-        })
-        .catch(() => setNews([]))
-        .finally(() => setNewsLoading(false));
-    }
   }, []);
 
   const allSlots = [1, 2, 3, 4].map(slot => {
@@ -159,52 +100,6 @@ export default function HomePage() {
             </div>
           );
         })}
-      </div>
-
-      <div>
-        <div className="flex items-center gap-2 mb-4">
-          <Newspaper className="w-5 h-5 text-[#1B4332]" />
-          <h2 className="font-heading font-bold text-xl text-[#0F172A] tracking-tight">GOLF NEWS</h2>
-        </div>
-
-        {newsLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {[1,2,3,4].map(i => (
-              <div key={i} className="bg-white rounded-xl border border-slate-100 p-4 animate-pulse">
-                <div className="h-4 bg-slate-100 rounded w-3/4 mb-2" />
-                <div className="h-3 bg-slate-100 rounded w-full mb-1" />
-              </div>
-            ))}
-          </div>
-        ) : news.length === 0 ? (
-          <div className="bg-white rounded-xl border border-slate-100 p-6 text-center">
-            <p className="text-slate-400 text-sm">Couldn't load news right now.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {news.map((article, i) => (
-              <a
-                key={i}
-                href={article.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 hover:shadow-md hover:border-[#1B4332]/20 transition-all group block"
-              >
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <span className="text-[10px] font-bold text-[#2D6A4F] uppercase tracking-wider">{article.source}</span>
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    <span className="text-[10px] text-slate-400">{article.date}</span>
-                    <ExternalLink className="w-3 h-3 text-slate-300 group-hover:text-[#1B4332] transition-colors" />
-                  </div>
-                </div>
-                <h3 className="font-bold text-sm text-[#0F172A] leading-snug mb-1 group-hover:text-[#1B4332] transition-colors">
-                  {article.headline}
-                </h3>
-                <p className="text-xs text-slate-500 leading-relaxed">{article.summary}</p>
-              </a>
-            ))}
-          </div>
-        )}
       </div>
     </div>
   );
