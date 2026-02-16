@@ -8,7 +8,7 @@ import { Badge } from '../components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
-import { Settings, Search, Download, DollarSign, Trash2, Loader2, Users, CheckCircle, ClipboardPaste, FileSpreadsheet, Calendar, Eye, Pencil, X } from 'lucide-react';
+import { Settings, Search, Download, DollarSign, Trash2, Loader2, Users, CheckCircle, ClipboardPaste, FileSpreadsheet, Calendar, Eye, Pencil, X, Mail } from 'lucide-react';
 
 const fmt = (n) => '$' + (n || 0).toLocaleString();
 
@@ -155,6 +155,25 @@ export default function AdminPage() {
       const r = await axios.get(`${API}/admin/teams/${teamsDialog.tournament.id}?user_id=${user.id}`);
       setTeamsDialog(p => ({ ...p, teams: r.data.teams }));
     } catch (e) { toast.error(e.response?.data?.detail || 'Delete failed'); }
+  };
+
+
+  const exportEmails = () => {
+    const seen = new Set();
+    const emails = teamsDialog.teams
+      .map(t => t.user_email)
+      .filter(e => e && !seen.has(e) && seen.add(e));
+    if (emails.length === 0) { toast.error('No emails found'); return; }
+    // Download as .csv
+    const csv = 'Email\n' + emails.join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${teamsDialog.tournament?.name || 'tournament'}-emails.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${emails.length} emails`);
   };
 
   const allSlots = [1, 2, 3, 4].map(slot => {
@@ -349,9 +368,17 @@ export default function AdminPage() {
       <Dialog open={teamsDialog.open} onOpenChange={(open) => { if (!open) { setTeamsDialog({ open: false, tournament: null, teams: [] }); setEditingTeam(null); setEditGolfers([]); } }}>
         <DialogContent className="sm:max-w-2xl h-[85vh] flex flex-col" data-testid="teams-dialog">
           <DialogHeader>
-            <DialogTitle className="font-heading font-bold text-xl">
-              {teamsDialog.tournament?.name} - Teams ({teamsDialog.teams.length})
-            </DialogTitle>
+            <div className="flex items-center justify-between pr-8">
+              <DialogTitle className="font-heading font-bold text-xl">
+                {teamsDialog.tournament?.name} - Teams ({teamsDialog.teams.length})
+              </DialogTitle>
+              {!editingTeam && teamsDialog.teams.length > 0 && (
+                <Button size="sm" variant="outline" onClick={exportEmails}
+                  className="h-8 px-3 text-xs font-bold flex items-center gap-1.5 border-[#1B4332] text-[#1B4332] hover:bg-[#1B4332] hover:text-white">
+                  <Mail className="w-3.5 h-3.5" />Export Emails
+                </Button>
+              )}
+            </div>
           </DialogHeader>
           
           {editingTeam ? (
