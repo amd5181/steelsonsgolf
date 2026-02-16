@@ -598,6 +598,16 @@ async def admin_delete_team(team_id: str, user_id: str = Query(...)):
     await db.teams.delete_one({"id": team_id})
     return {"message": "Team deleted successfully"}
 
+@api_router.patch("/admin/teams/{team_id}/paid")
+async def admin_set_team_paid(team_id: str, user_id: str = Query(...), paid: bool = Query(...)):
+    """Admin can mark a team as paid or unpaid."""
+    await check_admin(user_id)
+    team = await db.teams.find_one({"id": team_id}, {"_id": 0})
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+    await db.teams.update_one({"id": team_id}, {"$set": {"paid": paid}})
+    return await db.teams.find_one({"id": team_id}, {"_id": 0})
+
 # ── Public Tournament Routes ──
 @api_router.get("/tournaments")
 async def get_tournaments():
@@ -785,7 +795,7 @@ async def get_leaderboard(tournament_id: str):
         gd.sort(key=lambda x: x["total_points"], reverse=True)
         team_standings.append({
             "team_id": team["id"], "user_name": team["user_name"], "team_number": team["team_number"],
-            "team_name": f"{team['user_name']} #{team['team_number']}", "golfers": gd, "total_points": tp
+            "team_name": f"{team['user_name']} #{team['team_number']}", "golfers": gd, "total_points": tp, "paid": team.get("paid", False)
         })
     team_standings.sort(key=lambda x: x["total_points"], reverse=True)
     for i, ts in enumerate(team_standings):
@@ -847,9 +857,9 @@ async def manual_refresh(tournament_id: str, user_id: str = Query(...)):
 # ── History ──
 HISTORY = [
     {"year":2025,"tournaments":[
-        {"name":"The Open","winners":["Dat Boy","Keith Plocki","Bill Moser"]},
-        {"name":"U.S. Open","winners":["Paul Del Presto","Alan McBride","Justin Malago"]},
-        {"name":"PGA Championship","winners":["Bill Moser","Keith Plocki","Toby Cressman"]},
+        {"name":"The Open","winners":["Dat Boy","Rich Pocki","Bill Moser"]},
+        {"name":"U.S. Open","winners":["Paul Del Prieto","Alan McBride","Justin Malago"]},
+        {"name":"PGA Championship","winners":["Bill Moser","Keith Ginder","Toby Cressman"]},
         {"name":"Masters","winners":["Justin Blazel","Carson Custer","Toby Cressman"]}]},
     {"year":2024,"tournaments":[{"name":"Masters","winners":["Andy Albert","Ian Very","Matt Walker"]}]},
     {"year":2023,"tournaments":[{"name":"Masters","winners":["Andrew David","Colin Scarola","Justin Rosenthal"]}]},

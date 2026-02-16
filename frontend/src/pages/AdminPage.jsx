@@ -176,6 +176,17 @@ export default function AdminPage() {
     toast.success(`Exported ${emails.length} emails`);
   };
 
+
+  const togglePaid = async (teamId, currentPaid) => {
+    try {
+      const r = await axios.patch(`${API}/admin/teams/${teamId}/paid?user_id=${user.id}&paid=${!currentPaid}`);
+      setTeamsDialog(p => ({
+        ...p,
+        teams: p.teams.map(t => t.id === teamId ? { ...t, paid: r.data.paid } : t)
+      }));
+    } catch (e) { toast.error('Failed to update payment status'); }
+  };
+
   const allSlots = [1, 2, 3, 4].map(slot => {
     const t = tournaments.find(x => x.slot === slot);
     return t || { slot, name: '', status: 'setup', golfers: [] };
@@ -453,7 +464,19 @@ export default function AdminPage() {
                           <span className="font-bold text-sm text-[#0F172A]">{team.user_name} #{team.team_number}</span>
                           <span className="text-xs text-slate-400 ml-2">{team.user_email}</span>
                         </div>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1.5">
+                          {/* Paid toggle */}
+                          <button
+                            onClick={() => togglePaid(team.id, team.paid)}
+                            className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-bold border transition-colors ${
+                              team.paid
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                                : 'bg-red-50 text-red-500 border-red-200 hover:bg-red-100'
+                            }`}
+                            title={team.paid ? 'Mark as unpaid' : 'Mark as paid'}
+                          >
+                            {team.paid ? '✓ Paid' : '✗ Unpaid'}
+                          </button>
                           <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => startEditTeam(team)} data-testid={`edit-team-${team.id}`}>
                             <Pencil className="w-3.5 h-3.5 mr-1" />Edit
                           </Button>

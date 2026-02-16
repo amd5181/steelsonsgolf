@@ -8,6 +8,7 @@ import { Badge } from '../components/ui/badge';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { Search, Minus, Trash2, Save, DollarSign, Loader2, AlertTriangle, Lock, LogIn, UserPlus } from 'lucide-react';
 import AuthModal from '../components/AuthModal';
+import PaymentBanner from '../components/PaymentBanner';
 
 const BUDGET = 1000000;
 const fmt = (n) => '$' + (n || 0).toLocaleString();
@@ -166,6 +167,10 @@ export default function MyTeamsPage() {
           </button>
         </div>
       )}
+
+      <div className="mb-4">
+        <PaymentBanner compact={true} />
+      </div>
 
       {/* Tournament Selector */}
       <div className="flex gap-2 overflow-x-auto pb-2 mb-4" data-testid="tournament-selector">
