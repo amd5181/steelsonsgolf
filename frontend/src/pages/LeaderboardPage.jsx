@@ -248,8 +248,7 @@ export default function LeaderboardPage() {
                   </div>
                 ) : (
                   <>
-                    {/* Expand / Collapse toggle - only show if not before deadline */}
-                    {!isBeforeDeadline && (
+                    {/* Expand / Collapse toggle */}
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-slate-400 font-semibold">{standings.length} teams</span>
                       <button
