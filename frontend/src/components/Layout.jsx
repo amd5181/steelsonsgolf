@@ -33,13 +33,13 @@ export default function Layout() {
 
           <div className="flex items-center gap-2 cursor-pointer flex-shrink-0" onClick={() => navigate('/home')}>
             <img
-              src="https://images.vexels.com/media/users/3/134963/isolated/preview/7521d9cc865d48ec2dfb2a8a6286c13e-bridge-circle-icon-03.png"
+              src="https://res.cloudinary.com/dsvpfi9te/image/upload/v1771700941/ChatGPT_Image_Feb_21_2026_02_07_41_PM_kzc10a.png"
               alt="Steel Sons Golf"
               className="h-8 w-8 md:h-10 md:w-10 object-contain"
             />
-            <div className="flex flex-col">
-              <span className="font-heading font-bold text-sm md:text-lg tracking-tight text-[#1B4332] leading-tight">STEEL SONS GOLF</span>
-              <span className="text-[6px] md:text-[8px] font-bold text-[#0F172A] tracking-wider leading-none">BLAST FURNACE OF CHAMPIONS</span>
+            <div className="flex flex-col leading-none">
+              <span className="text-[9px] md:text-[10px] font-bold text-[#1B4332] tracking-wider">BLAST FURNACE</span>
+              <span className="text-[9px] md:text-[10px] font-bold text-[#1B4332] tracking-wider">OF CHAMPIONS</span>
             </div>
           </div>
 
