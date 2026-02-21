@@ -41,7 +41,11 @@ export default function ProfileModal({ open, onClose }) {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md" data-testid="profile-modal">
+      <DialogContent
+        className="sm:max-w-md"
+        data-testid="profile-modal"
+        onOpenAutoFocus={e => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle className="font-heading font-bold text-xl">Edit Profile</DialogTitle>
           <DialogDescription>Update your name, email, or PIN. Changes to email and PIN must be unique.</DialogDescription>
