@@ -636,38 +636,38 @@ async def admin_set_team_paid(team_id: str, user_id: str = Query(...), paid: boo
 async def debug_espn_raw(event_id: str):
     """Debug endpoint to see raw ESPN data for cut detection."""
     try:
-        golfers, raw = await espn_get_field(event_id, "")
+        import requests
         
-        # Return structure info and sample competitors
-        if not raw:
-            return {"error": "No raw data returned"}
+        # Try the leaderboard endpoint which should have full competitor data
+        url = f"https://site.api.espn.com/apis/site/v2/sports/golf/pga/leaderboard"
+        params = {'event': event_id}
         
-        if 'events' not in raw:
-            return {"error": "No events in raw data", "keys": list(raw.keys())}
+        resp = requests.get(url, params=params, timeout=15)
+        data = resp.json()
         
-        if not raw['events']:
-            return {"error": "Events array is empty"}
+        # Navigate the structure
+        if 'events' not in data:
+            return {"error": "No events", "keys": list(data.keys()), "url": url}
         
-        event = raw['events'][0]
+        event = data['events'][0] if data['events'] else {}
         if 'competitions' not in event:
-            return {"error": "No competitions in event", "event_keys": list(event.keys())}
+            return {"error": "No competitions", "event_keys": list(event.keys())}
         
         comp = event['competitions'][0] if event['competitions'] else {}
         if 'competitors' not in comp:
-            return {"error": "No competitors in competition", "comp_keys": list(comp.keys())}
+            return {"error": "No competitors", "comp_keys": list(comp.keys()), "trying_url": url}
         
         comps = comp['competitors']
         
-        # Get cut candidates (positions 74-78, should be cut players)
-        cut_candidates = [c for c in comps if c.get('order', 999) >= 74 and c.get('order', 999) <= 78]
-        
-        # Get a non-cut player for comparison (position 1)
-        leader = [c for c in comps if c.get('order', 999) == 1]
+        # Sample cut players vs non-cut players
+        cut_sample = [c for c in comps if c.get('order', 999) >= 74 and c.get('order', 999) <= 76]
+        leader_sample = [c for c in comps if c.get('order', 999) == 1]
         
         return {
+            "url_used": url,
             "total_competitors": len(comps),
-            "leader_sample": leader[0] if leader else None,
-            "cut_players_sample": cut_candidates[:3]
+            "leader": leader_sample[0] if leader_sample else None,
+            "cut_players": cut_sample[:2]
         }
     except Exception as e:
         import traceback
