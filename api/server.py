@@ -874,12 +874,14 @@ async def get_leaderboard(tournament_id: str):
                 gd.append({**golfer, "position": position, "total_score": sd.get("total_score",""),
                           "rounds": sd.get("rounds",[]), "thru": sd.get("thru",""),
                           "is_active": sd.get("is_active",False), "is_cut": sd.get("is_cut",False),
-                          "strokes_behind": sb_val, "place_points": round(pp, 1), "stroke_points": sp, "total_points": round(tot, 1)})
+                          "strokes_behind": sb_val, "place_points": round(pp, 1), "stroke_points": sp,
+                          "total_points": round(tot, 1), "sort_order": sd.get("sort_order", 999)})
                 tp += tot
             else:
                 gd.append({**golfer, "position":"-","total_score":"-","rounds":[],"thru":"",
-                          "is_active":False,"is_cut":False,"strokes_behind":0,"place_points":0,"stroke_points":0,"total_points":0})
-        gd.sort(key=lambda x: x["total_points"], reverse=True)
+                          "is_active":False,"is_cut":False,"strokes_behind":0,"place_points":0,"stroke_points":0,"total_points":0,"sort_order":9999})
+        # Sort: active/non-cut players by total_points desc, then cut players by sort_order (finish position) asc
+        gd.sort(key=lambda x: (1 if x.get("is_cut") else 0, -x["total_points"] if not x.get("is_cut") else x.get("sort_order", 9999)))
         team_standings.append({
             "team_id": team["id"], "user_name": team["user_name"], "team_number": team["team_number"],
             "team_name": f"{team['user_name']} #{team['team_number']}", "golfers": gd, "total_points": tp, "paid": team.get("paid", False)
