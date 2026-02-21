@@ -28,27 +28,42 @@ const renderThruCell = (golfer) => {
   return <span className="text-slate-300 text-xs">—</span>;
 };
 
+// Normalize CUT players so initial load matches manual refresh behavior:
+// - Convert total_score "CUT" to actual score using score_int
+// - Trim rounds to first 2 (rounds 3+4 show as CUT via renderRounds)
+function normalizeCutPlayers(data) {
+  if (!data?.team_standings) return data;
+  return {
+    ...data,
+    team_standings: data.team_standings.map(team => ({
+      ...team,
+      golfers: team.golfers.map(g => {
+        if (!g.is_cut) return g;
+        let total_score = g.total_score;
+        if (total_score === 'CUT' && g.score_int != null) {
+          total_score = g.score_int === 0 ? 'E'
+            : g.score_int > 0 ? `+${g.score_int}`
+            : String(g.score_int);
+        }
+        return { ...g, total_score, rounds: (g.rounds || []).slice(0, 2) };
+      })
+    }))
+  };
+}
 
-// Select tournament with closest upcoming deadline
 function getDefaultTournamentId(tournaments) {
   if (!tournaments || tournaments.length === 0) return null;
   const now = new Date();
-  
   let closest = null;
   let closestDiff = Infinity;
-  
   tournaments.forEach(t => {
     if (!t.deadline || !t.id) return;
     try {
       const deadline = new Date(t.deadline);
       const diff = Math.abs(deadline - now);
-      if (diff < closestDiff) {
-        closestDiff = diff;
-        closest = t;
-      }
+      if (diff < closestDiff) { closestDiff = diff; closest = t; }
     } catch (e) {}
   });
-  
   return closest ? closest.id : null;
 }
 
@@ -60,7 +75,6 @@ export default function LeaderboardPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [expandedStandings, setExpandedStandings] = useState(false);
-  // true = full team cards, false = collapsed summary list
   const [expanded, setExpanded] = useState(true);
 
   useEffect(() => {
@@ -75,7 +89,7 @@ export default function LeaderboardPage() {
     if (!selectedTid) return;
     try {
       const r = await axios.get(`${API}/leaderboard/${selectedTid}`);
-      setData(r.data);
+      setData(normalizeCutPlayers(r.data));
     } catch { setData(null); }
   }, [selectedTid]);
 
@@ -114,10 +128,9 @@ export default function LeaderboardPage() {
   const allScores = data?.tournament_standings || [];
   const finalized = data?.is_finalized;
   const winners = finalized ? standings.slice(0, 3) : [];
-  
-  // Check if current time is before deadline — hide team standings until locked
+
   const currentTournament = tournaments.find(t => t.id === selectedTid);
-  const isBeforeDeadline = currentTournament?.deadline 
+  const isBeforeDeadline = currentTournament?.deadline
     ? new Date() < new Date(currentTournament.deadline)
     : false;
 
@@ -168,7 +181,6 @@ export default function LeaderboardPage() {
     );
   };
 
-  // Collapsed summary row
   const CollapsedRow = ({ team }) => (
     <div className="flex items-center px-4 py-2.5 border-b border-slate-50 last:border-0 hover:bg-slate-50 transition-colors">
       <div className={`w-7 h-7 rounded-full flex items-center justify-center font-numbers font-bold text-xs mr-3 flex-shrink-0 ${
@@ -192,9 +204,7 @@ export default function LeaderboardPage() {
 
   return (
     <>
-      {/* Page content — no animate-fade-in-up here so fixed button works correctly */}
       <div className="p-4 md:p-8 max-w-5xl mx-auto" data-testid="leaderboard-page">
-
         <div className="flex items-center justify-between mb-2">
           <h1 className="font-heading font-extrabold text-3xl sm:text-4xl text-[#0F172A] tracking-tight">LEADERBOARD</h1>
         </div>
@@ -233,7 +243,6 @@ export default function LeaderboardPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2 space-y-3">
 
-                {/* Winners Banner */}
                 {finalized && winners.length > 0 && (
                   <div className="bg-gradient-to-r from-[#1B4332] to-[#2D6A4F] rounded-xl p-4 text-white" data-testid="winners-banner">
                     <h3 className="font-heading font-bold text-sm uppercase tracking-wider mb-3 text-[#CCFF00]">
@@ -258,8 +267,8 @@ export default function LeaderboardPage() {
                     <p className="text-slate-400 text-sm">Team standings will be revealed after the deadline.</p>
                     {currentTournament?.deadline && (
                       <p className="text-xs text-slate-500 mt-2">
-                        Unlocks: {new Date(currentTournament.deadline).toLocaleString('en-US', { 
-                          month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' 
+                        Unlocks: {new Date(currentTournament.deadline).toLocaleString('en-US', {
+                          month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
                         })}
                       </p>
                     )}
@@ -271,7 +280,6 @@ export default function LeaderboardPage() {
                   </div>
                 ) : (
                   <>
-                    {/* Expand / Collapse toggle */}
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-slate-400 font-semibold">{standings.length} teams</span>
                       <button
@@ -289,14 +297,12 @@ export default function LeaderboardPage() {
                       </button>
                     </div>
 
-                    {/* Collapsed view — compact list */}
                     {!expanded && (
                       <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
                         {standings.map(team => <CollapsedRow key={team.team_id} team={team} />)}
                       </div>
                     )}
 
-                    {/* Expanded view — full team cards */}
                     {expanded && standings.map(team => (
                       <div key={team.team_id} className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden"
                         data-testid={`team-standing-${team.rank}`}>
@@ -336,16 +342,13 @@ export default function LeaderboardPage() {
                         <div className="divide-y divide-slate-50">
                           {team.golfers.map((g, i) => (
                             <div key={i} className="flex items-center px-4 py-1.5 text-xs">
-                              {/* POS — hidden on mobile */}
                               <span className={`hidden sm:block w-10 font-numbers font-bold flex-shrink-0 ${g.is_cut ? 'text-red-400' : g.is_active ? 'text-green-500 pulse-active' : 'text-slate-500'}`}>
                                 {g.is_cut ? 'CUT' : g.position || '-'}{g.is_active && !g.is_cut && '*'}
                               </span>
-                              {/* Name — full name on all sizes now that POS is hidden on mobile */}
                               <span className="flex-1 font-medium text-[#0F172A] truncate min-w-0 mr-1">
                                 <span className="sm:hidden">{abbrevName(g.name)}</span>
                                 <span className="hidden sm:inline">{g.name}</span>
                               </span>
-                              {/* Round scores — w-6 on mobile, w-7 on sm+ */}
                               <div className="flex gap-0.5 mr-1 flex-shrink-0">
                                 {renderRounds(g)}
                               </div>
@@ -374,11 +377,9 @@ export default function LeaderboardPage() {
           </>
         )}
 
-        {/* bottom padding so FAB doesn't overlap last card */}
         <div className="h-20" />
       </div>
 
-      {/* Floating refresh — outside the page div so no transform parent breaks fixed */}
       <button
         onClick={handleRefresh}
         disabled={refreshing}
