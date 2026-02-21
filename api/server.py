@@ -236,9 +236,22 @@ async def espn_get_field(event_id, event_date=None):
                     'strokes': ls.get('value', None)
                 })
             score_str = str(c.get('score', ''))
-            # Detect cuts: Check if word "CUT" appears OR if player has significantly fewer rounds than expected
-            # During a tournament, cut players will have 2 rounds while others continue to 3 or 4
-            is_cut_by_text = 'CUT' in score_str.upper()
+            # Detect cuts: Check if word "CUT" appears in any relevant ESPN field,
+            # since ESPN may place "CUT" in the score, status type, status description,
+            # or individual linescore displayValues depending on the tournament/round state.
+            status_obj = c.get('status', {})
+            status_name = ''
+            status_desc = ''
+            status_short = ''
+            if isinstance(status_obj, dict):
+                type_obj = status_obj.get('type', {})
+                if isinstance(type_obj, dict):
+                    status_name = str(type_obj.get('name', ''))
+                    status_desc = str(type_obj.get('description', ''))
+                    status_short = str(type_obj.get('shortDetail', ''))
+            linescore_text = ' '.join(str(ls.get('displayValue', '')) for ls in c.get('linescores', []))
+            combined_text = f"{score_str} {status_name} {status_desc} {status_short} {linescore_text}".upper()
+            is_cut_by_text = 'CUT' in combined_text
             is_cut = is_cut_by_text
             
             golfers.append({
