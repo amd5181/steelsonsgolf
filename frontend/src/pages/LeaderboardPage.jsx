@@ -40,10 +40,12 @@ function normalizeCutPlayers(data) {
       golfers: team.golfers.map(g => {
         if (!g.is_cut) return g;
         let total_score = g.total_score;
-        if (total_score === 'CUT' && g.score_int != null) {
+        if (g.score_int != null) {
           total_score = g.score_int === 0 ? 'E'
             : g.score_int > 0 ? `+${g.score_int}`
             : String(g.score_int);
+        } else if (total_score === 'CUT') {
+          total_score = '-';
         }
         return { ...g, total_score, rounds: (g.rounds || []).slice(0, 2) };
       })
