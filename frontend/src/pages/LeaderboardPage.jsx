@@ -44,9 +44,12 @@ function normalizeCutPlayers(data) {
           total_score = g.score_int === 0 ? 'E'
             : g.score_int > 0 ? `+${g.score_int}`
             : String(g.score_int);
-        } else if (total_score === 'CUT') {
-          total_score = '-';
+        } else if (typeof total_score === 'number') {
+          total_score = total_score === 0 ? 'E'
+            : total_score > 0 ? `+${total_score}`
+            : String(total_score);
         }
+        // if total_score is still 'CUT' or empty at this point, leave it as-is
         return { ...g, total_score, rounds: (g.rounds || []).slice(0, 2) };
       })
     }))
