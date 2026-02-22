@@ -98,7 +98,17 @@ export default function LeaderboardPage() {
     } catch { setData(null); }
   }, [selectedTid]);
 
-  useEffect(() => { fetchLeaderboard(); }, [fetchLeaderboard]);
+  useEffect(() => {
+    if (!selectedTid) return;
+    if (user) {
+      // Trigger a silent refresh on initial load so scores are up to date
+      axios.post(`${API}/scores/refresh/${selectedTid}?user_id=${user.id}`)
+        .catch(() => {})
+        .finally(() => fetchLeaderboard());
+    } else {
+      fetchLeaderboard();
+    }
+  }, [fetchLeaderboard, selectedTid, user]);
 
   useEffect(() => {
     if (!data || !selectedTid) return;
