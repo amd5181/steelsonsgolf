@@ -32,6 +32,13 @@ function getStatusBadge(status, deadline) {
 
 const SLOT_NAMES = ['Masters', 'PGA Championship', 'U.S. Open', 'The Open'];
 
+const SLOT_VIDEOS = {
+  1: '2WKkCZN6lbE',
+  2: '6YrmRSEqOTo',
+  3: 'F1r2tHleHCg',
+  4: '6x3UuTgs4pI',
+};
+
 export default function HomePage() {
   const [tournaments, setTournaments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -71,31 +78,28 @@ export default function HomePage() {
               data-testid={`tournament-card-${t.slot}`}
               onClick={() => t.id ? navigate('/teams') : null}
             >
-              {/* Watermark video — Masters card only */}
-              {t.slot === 1 && (
-                <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-                  {/* 16:9 wrapper centered in card, slight overflow clipped by card's overflow-hidden */}
-                  <div style={{
-                    position: 'absolute',
-                    top: '50%', left: 0, right: 0,
-                    transform: 'translateY(-50%)',
-                    paddingTop: '56.25%',
-                  }}>
-                    <iframe
-                      src="https://www.youtube.com/embed/2WKkCZN6lbE?autoplay=1&mute=1&loop=1&playlist=2WKkCZN6lbE&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1"
-                      title=""
-                      allow="autoplay; encrypted-media"
-                      style={{
-                        position: 'absolute',
-                        top: 0, left: 0,
-                        width: '100%', height: '100%',
-                        filter: 'saturate(2)',
-                      }}
-                    />
-                  </div>
-                  <div className="absolute inset-0 bg-white/[0.88]" />
+              {/* Watermark video — unique per tournament */}
+              <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+                <div style={{
+                  position: 'absolute',
+                  top: '50%', left: 0, right: 0,
+                  transform: 'translateY(-50%)',
+                  paddingTop: '56.25%',
+                }}>
+                  <iframe
+                    src={`https://www.youtube.com/embed/${SLOT_VIDEOS[t.slot]}?autoplay=1&mute=1&loop=1&playlist=${SLOT_VIDEOS[t.slot]}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1`}
+                    title=""
+                    allow="autoplay; encrypted-media"
+                    style={{
+                      position: 'absolute',
+                      top: 0, left: 0,
+                      width: '100%', height: '100%',
+                      filter: 'saturate(2)',
+                    }}
+                  />
                 </div>
-              )}
+                <div className="absolute inset-0 bg-white/[0.84]" />
+              </div>
               <div className="relative z-10">
               <div className="h-2 bg-gradient-to-r from-[#1B4332] to-[#2D6A4F]" />
               <div className="p-5">
