@@ -67,10 +67,24 @@ export default function HomePage() {
           const badge = getStatusBadge(t.status, t.deadline);
           return (
             <div key={t.slot}
-              className="bg-white rounded-xl border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.06)] hover:shadow-[0_8px_24px_rgba(27,67,50,0.12)] transition-all duration-300 overflow-hidden group cursor-pointer"
+              className="relative bg-white rounded-xl border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.06)] hover:shadow-[0_8px_24px_rgba(27,67,50,0.12)] transition-all duration-300 overflow-hidden group cursor-pointer"
               data-testid={`tournament-card-${t.slot}`}
               onClick={() => t.id ? navigate('/teams') : null}
             >
+              {/* Watermark video — Masters card only */}
+              {t.slot === 1 && (
+                <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+                  <iframe
+                    src="https://www.youtube.com/embed/2WKkCZN6lbE?autoplay=1&mute=1&loop=1&playlist=2WKkCZN6lbE&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1"
+                    title=""
+                    allow="autoplay; encrypted-media"
+                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+                    style={{ width: '300%', height: '300%', filter: 'saturate(2)' }}
+                  />
+                  <div className="absolute inset-0 bg-white/[0.93]" />
+                </div>
+              )}
+              <div className="relative z-10">
               <div className="h-2 bg-gradient-to-r from-[#1B4332] to-[#2D6A4F]" />
               <div className="p-5">
                 <div className="flex items-start justify-between mb-3">
@@ -96,6 +110,7 @@ export default function HomePage() {
                     Build Your Team <ChevronRight className="w-4 h-4 ml-1" />
                   </div>
                 )}
+              </div>
               </div>
             </div>
           );
