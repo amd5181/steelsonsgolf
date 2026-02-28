@@ -74,14 +74,26 @@ export default function HomePage() {
               {/* Watermark video — Masters card only */}
               {t.slot === 1 && (
                 <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-                  <iframe
-                    src="https://www.youtube.com/embed/2WKkCZN6lbE?autoplay=1&mute=1&loop=1&playlist=2WKkCZN6lbE&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1"
-                    title=""
-                    allow="autoplay; encrypted-media"
-                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-                    style={{ width: '300%', height: '300%', filter: 'saturate(2)' }}
-                  />
-                  <div className="absolute inset-0 bg-white/[0.93]" />
+                  {/* 16:9 wrapper centered in card, slight overflow clipped by card's overflow-hidden */}
+                  <div style={{
+                    position: 'absolute',
+                    top: '50%', left: 0, right: 0,
+                    transform: 'translateY(-50%)',
+                    paddingTop: '56.25%',
+                  }}>
+                    <iframe
+                      src="https://www.youtube.com/embed/2WKkCZN6lbE?autoplay=1&mute=1&loop=1&playlist=2WKkCZN6lbE&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1"
+                      title=""
+                      allow="autoplay; encrypted-media"
+                      style={{
+                        position: 'absolute',
+                        top: 0, left: 0,
+                        width: '100%', height: '100%',
+                        filter: 'saturate(2)',
+                      }}
+                    />
+                  </div>
+                  <div className="absolute inset-0 bg-white/[0.88]" />
                 </div>
               )}
               <div className="relative z-10">
