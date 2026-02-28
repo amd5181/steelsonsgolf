@@ -33,11 +33,34 @@ function getStatusBadge(status, deadline) {
 const SLOT_NAMES = ['Masters', 'PGA Championship', 'U.S. Open', 'The Open'];
 
 const SLOT_VIDEOS = {
-  1: '2WKkCZN6lbE',
-  2: '6YrmRSEqOTo',
-  3: 'F1r2tHleHCg',
-  4: '6x3UuTgs4pI',
+  1: 'https://res.cloudinary.com/dsvpfi9te/video/upload/v1772307409/MicrosoftTeams-video_lcv2jg.mp4',
+  2: 'https://res.cloudinary.com/dsvpfi9te/video/upload/v1772307415/MicrosoftTeams-video_1_ntghow.mp4',
+  3: 'https://res.cloudinary.com/dsvpfi9te/video/upload/v1772307409/MicrosoftTeams-video_3_ajregd.mp4',
+  4: 'https://res.cloudinary.com/dsvpfi9te/video/upload/v1772307415/MicrosoftTeams-video_2_hfd5sd.mp4',
 };
+
+function getStillFrameUrl(videoUrl) {
+  return videoUrl
+    .replace('/video/upload/', '/video/upload/so_50p/')
+    .replace('.mp4', '.jpg');
+}
+
+function getActiveSlot(allSlots) {
+  const withDeadlines = allSlots.filter(t => t.deadline);
+  if (withDeadlines.length === 0) return 1;
+
+  const now = new Date();
+  const upcoming = withDeadlines.filter(t => new Date(t.deadline) > now);
+
+  if (upcoming.length > 0) {
+    upcoming.sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+    return upcoming[0].slot;
+  }
+
+  // All deadlines passed — use the most recently passed one
+  withDeadlines.sort((a, b) => new Date(b.deadline) - new Date(a.deadline));
+  return withDeadlines[0].slot;
+}
 
 export default function HomePage() {
   const [tournaments, setTournaments] = useState([]);
@@ -52,6 +75,8 @@ export default function HomePage() {
     const t = tournaments.find(x => x.slot === slot);
     return t || { slot, name: SLOT_NAMES[slot - 1], status: 'setup', team_count: 0, golfer_count: 0, start_date: '', end_date: '', deadline: '' };
   });
+
+  const activeSlot = getActiveSlot(allSlots);
 
   if (loading) return (
     <div className="flex items-center justify-center h-[60vh]">
@@ -78,26 +103,27 @@ export default function HomePage() {
               data-testid={`tournament-card-${t.slot}`}
               onClick={() => t.id ? navigate('/teams') : null}
             >
-              {/* Watermark video — unique per tournament */}
+              {/* Watermark media — animated for nearest deadline, still frame for others */}
               <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-                <div style={{
-                  position: 'absolute',
-                  top: '50%', left: 0, right: 0,
-                  transform: 'translateY(-50%)',
-                  paddingTop: '56.25%',
-                }}>
-                  <iframe
-                    src={`https://www.youtube.com/embed/${SLOT_VIDEOS[t.slot]}?autoplay=1&mute=1&loop=1&playlist=${SLOT_VIDEOS[t.slot]}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1`}
-                    title=""
-                    allow="autoplay; encrypted-media"
-                    style={{
-                      position: 'absolute',
-                      top: 0, left: 0,
-                      width: '100%', height: '100%',
-                      filter: 'saturate(2)',
-                    }}
+                {activeSlot === t.slot ? (
+                  <video
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    className="absolute inset-0 w-full h-full object-cover"
+                    style={{ filter: 'saturate(1.8)' }}
+                  >
+                    <source src={SLOT_VIDEOS[t.slot]} type="video/mp4" />
+                  </video>
+                ) : (
+                  <img
+                    src={getStillFrameUrl(SLOT_VIDEOS[t.slot])}
+                    alt=""
+                    className="absolute inset-0 w-full h-full object-cover"
+                    style={{ filter: 'saturate(1.8)' }}
                   />
-                </div>
+                )}
                 <div className="absolute inset-0 bg-white/[0.84]" />
               </div>
               <div className="relative z-10">
