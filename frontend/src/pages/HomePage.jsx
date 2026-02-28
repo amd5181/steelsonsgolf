@@ -32,13 +32,6 @@ function getStatusBadge(status, deadline) {
 
 const SLOT_NAMES = ['Masters', 'PGA Championship', 'U.S. Open', 'The Open'];
 
-const SLOT_GIFS = {
-  1: 'https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExaWRyMzdzMHdvaGxzbmUzeTFuaHhrYXI3NWhlZHQ5aTMzcnJrcWZwcSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/BIYjVi2AAnm8J1PoqU/giphy.gif',
-  2: 'https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExcnpseHh3MmxidGs0d2V5dzd6cHZyYjV4MjRnZ3VvZmoxNnlvenZxYSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/VilJBEGTI8iPs2tVP1/giphy.gif',
-  3: 'https://golfdigest.sports.sndimg.com/content/dam/images/golfdigest/unsized/2018/06/05/5b16e83424cca97cb05ba076_Shinny6.2.gif',
-  4: 'https://platform.sbnation.com/wp-content/uploads/sites/2/chorus/assets/2937343/jimenezweird.gif',
-};
-
 export default function HomePage() {
   const [tournaments, setTournaments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -74,7 +67,7 @@ export default function HomePage() {
           const badge = getStatusBadge(t.status, t.deadline);
           return (
             <div key={t.slot}
-              className="relative bg-white rounded-xl border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.06)] hover:shadow-[0_8px_24px_rgba(27,67,50,0.12)] transition-all duration-300 overflow-hidden group cursor-pointer"
+              className="bg-white rounded-xl border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.06)] hover:shadow-[0_8px_24px_rgba(27,67,50,0.12)] transition-all duration-300 overflow-hidden group cursor-pointer"
               data-testid={`tournament-card-${t.slot}`}
               onClick={() => t.id ? navigate('/teams') : null}
             >
@@ -107,13 +100,6 @@ export default function HomePage() {
                   </div>
                 )}
               </div>
-              {/* GIF accent — bottom-right corner, clipped by card's overflow-hidden */}
-              <img
-                src={SLOT_GIFS[t.slot]}
-                alt=""
-                className="absolute bottom-0 right-0 w-28 h-20 object-cover rounded-tl-2xl pointer-events-none"
-                style={{ opacity: 0.88 }}
-              />
             </div>
           );
         })}
