@@ -53,28 +53,7 @@ export default function HomePage() {
   );
 
   return (
-    <div className="relative animate-fade-in-up overflow-hidden">
-      {/* Background video */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <iframe
-          src="https://www.youtube.com/embed/2WKkCZN6lbE?autoplay=1&mute=1&loop=1&playlist=2WKkCZN6lbE&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1"
-          title=""
-          allow="autoplay; encrypted-media"
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-          style={{
-            width: '100vw',
-            height: '56.25vw',
-            minHeight: '100%',
-            minWidth: '177.78vh',
-            filter: 'saturate(1.6)',
-          }}
-        />
-        {/* Fade overlay */}
-        <div className="absolute inset-0 bg-white/82" />
-      </div>
-
-      {/* Content */}
-      <div className="relative z-10 p-4 md:p-8 max-w-5xl mx-auto">
+    <div className="p-4 md:p-8 max-w-5xl mx-auto animate-fade-in-up">
       {/* Tournaments */}
       <div className="mb-6">
         <h1 className="font-heading font-extrabold text-3xl sm:text-4xl text-[#0F172A] tracking-tight" data-testid="home-title">
@@ -121,7 +100,6 @@ export default function HomePage() {
             </div>
           );
         })}
-      </div>
       </div>
     </div>
   );
