@@ -6,7 +6,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
 import { ScrollArea } from '../components/ui/scroll-area';
-import { Search, Minus, Trash2, Save, DollarSign, Loader2, AlertTriangle, Lock, LogIn, UserPlus } from 'lucide-react';
+import { Search, Minus, Trash2, Save, DollarSign, Loader2, AlertTriangle, Lock, LogIn } from 'lucide-react';
 import AuthModal from '../components/AuthModal';
 import PaymentBanner from '../components/PaymentBanner';
 
@@ -19,10 +19,10 @@ const isLocked = (dl) => { if (!dl) return false; try { return new Date() > new 
 function getDefaultTournamentSlot(tournaments) {
   if (!tournaments || tournaments.length === 0) return null;
   const now = new Date();
-  
+
   let closest = null;
   let closestDiff = Infinity;
-  
+
   tournaments.forEach(t => {
     if (!t.deadline) return;
     try {
@@ -34,10 +34,11 @@ function getDefaultTournamentSlot(tournaments) {
       }
     } catch (e) {}
   });
-  
+
   return closest ? closest.slot : (tournaments.length > 0 ? tournaments[0].slot : null);
 }
 
+const EMPTY_TEAM = [null, null, null, null, null];
 
 export default function MyTeamsPage() {
   const { user } = useAuth();
@@ -45,8 +46,10 @@ export default function MyTeamsPage() {
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [tournament, setTournament] = useState(null);
   const [userTeams, setUserTeams] = useState([]);
-  const [team1, setTeam1] = useState([null, null, null, null, null]);
-  const [team2, setTeam2] = useState([null, null, null, null, null]);
+  const [team1, setTeam1] = useState([...EMPTY_TEAM]);
+  const [team2, setTeam2] = useState([...EMPTY_TEAM]);
+  const [savedTeam1, setSavedTeam1] = useState([...EMPTY_TEAM]);
+  const [savedTeam2, setSavedTeam2] = useState([...EMPTY_TEAM]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -65,6 +68,11 @@ export default function MyTeamsPage() {
   useEffect(() => {
     if (!selectedSlot) return;
     const t = tournaments.find(x => x.slot === selectedSlot);
+    // Reset teams when switching tournaments
+    setTeam1([...EMPTY_TEAM]);
+    setTeam2([...EMPTY_TEAM]);
+    setSavedTeam1([...EMPTY_TEAM]);
+    setSavedTeam2([...EMPTY_TEAM]);
     if (!t?.id) { setTournament(null); return; }
     axios.get(`${API}/tournaments/${t.id}`).then(r => setTournament(r.data)).catch(() => setTournament(null));
     if (user) {
@@ -72,8 +80,12 @@ export default function MyTeamsPage() {
         setUserTeams(r.data);
         const t1 = r.data.find(x => x.tournament_id === t.id && x.team_number === 1);
         const t2 = r.data.find(x => x.tournament_id === t.id && x.team_number === 2);
-        setTeam1(t1 ? [...t1.golfers, ...Array(5 - t1.golfers.length).fill(null)] : [null,null,null,null,null]);
-        setTeam2(t2 ? [...t2.golfers, ...Array(5 - t2.golfers.length).fill(null)] : [null,null,null,null,null]);
+        const t1State = t1 ? [...t1.golfers, ...Array(5 - t1.golfers.length).fill(null)] : [...EMPTY_TEAM];
+        const t2State = t2 ? [...t2.golfers, ...Array(5 - t2.golfers.length).fill(null)] : [...EMPTY_TEAM];
+        setTeam1(t1State);
+        setTeam2(t2State);
+        setSavedTeam1([...t1State]);
+        setSavedTeam2([...t2State]);
       }).catch(() => {});
     }
   }, [selectedSlot, tournaments, user]);
@@ -101,6 +113,10 @@ export default function MyTeamsPage() {
   const setCurrentTeam = activeTeam === 1 ? setTeam1 : setTeam2;
   const currentFull = currentTeam.filter(Boolean).length >= 5;
   const remaining = BUDGET - currentCost;
+
+  // Detect pending (unsaved) changes by comparing name arrays
+  const teamsEqual = (a, b) => a.every((g, i) => g?.name === b[i]?.name);
+  const hasPendingChanges = !teamsEqual(team1, savedTeam1) || !teamsEqual(team2, savedTeam2);
 
   const addGolfer = (golfer) => {
     if (locked) { toast.error('Teams are locked!'); return false; }
@@ -131,29 +147,43 @@ export default function MyTeamsPage() {
     setCurrentTeam([...filled, ...Array(5 - filled.length).fill(null)]);
   };
 
-  const clearTeam = () => { if (!locked) setCurrentTeam([null,null,null,null,null]); };
+  const clearTeam = () => { if (!locked) setCurrentTeam([...EMPTY_TEAM]); };
 
-  const saveTeam = async () => {
+  // Saves both Team 1 and Team 2 at once
+  const saveTeams = async () => {
     if (!user) { setAuthMode('login'); setAuthOpen(true); return; }
-    const filled = currentTeam.filter(Boolean);
-    if (filled.length === 0) {
-      const existing = userTeams.find(t => t.tournament_id === tournament.id && t.team_number === activeTeam);
-      if (existing) {
-        try {
-          await axios.delete(`${API}/teams/${existing.id}?user_id=${user.id}`);
-          toast.success(`Team #${activeTeam} deleted`);
-          setUserTeams((await axios.get(`${API}/teams/user/${user.id}`)).data);
-        } catch (e) { toast.error(e.response?.data?.detail || 'Delete failed'); }
-      }
+    const filled1 = team1.filter(Boolean);
+    const filled2 = team2.filter(Boolean);
+    if ((filled1.length > 0 && filled1.length !== 5) || (filled2.length > 0 && filled2.length !== 5)) {
+      toast.error('Each team needs exactly 5 golfers (or leave it empty)');
       return;
     }
-    if (filled.length !== 5) { toast.error('Select exactly 5 golfers'); return; }
-    if (currentCost > BUDGET) { toast.error('Over budget!'); return; }
+    if (team1Cost > BUDGET || team2Cost > BUDGET) {
+      toast.error('One or more teams are over budget!');
+      return;
+    }
     setSaving(true);
     try {
-      await axios.post(`${API}/teams`, { user_id: user.id, tournament_id: tournament.id, team_number: activeTeam, golfers: filled });
-      toast.success(`Team #${activeTeam} saved!`);
-      setUserTeams((await axios.get(`${API}/teams/user/${user.id}`)).data);
+      const existing1 = userTeams.find(t => t.tournament_id === tournament.id && t.team_number === 1);
+      const existing2 = userTeams.find(t => t.tournament_id === tournament.id && t.team_number === 2);
+
+      if (filled1.length === 0 && existing1) {
+        await axios.delete(`${API}/teams/${existing1.id}?user_id=${user.id}`);
+      } else if (filled1.length === 5) {
+        await axios.post(`${API}/teams`, { user_id: user.id, tournament_id: tournament.id, team_number: 1, golfers: filled1 });
+      }
+
+      if (filled2.length === 0 && existing2) {
+        await axios.delete(`${API}/teams/${existing2.id}?user_id=${user.id}`);
+      } else if (filled2.length === 5) {
+        await axios.post(`${API}/teams`, { user_id: user.id, tournament_id: tournament.id, team_number: 2, golfers: filled2 });
+      }
+
+      toast.success('Teams saved!');
+      const newTeams = (await axios.get(`${API}/teams/user/${user.id}`)).data;
+      setUserTeams(newTeams);
+      setSavedTeam1([...team1]);
+      setSavedTeam2([...team2]);
     } catch (e) { toast.error(e.response?.data?.detail || 'Save failed'); }
     finally { setSaving(false); }
   };
@@ -166,8 +196,10 @@ export default function MyTeamsPage() {
       setUserTeams(r.data);
       const t1 = r.data.find(x => x.tournament_id === tournament.id && x.team_number === 1);
       const t2 = r.data.find(x => x.tournament_id === tournament.id && x.team_number === 2);
-      if (t1) setTeam1([...t1.golfers, ...Array(5 - t1.golfers.length).fill(null)]);
-      if (t2) setTeam2([...t2.golfers, ...Array(5 - t2.golfers.length).fill(null)]);
+      const t1State = t1 ? [...t1.golfers, ...Array(5 - t1.golfers.length).fill(null)] : [...EMPTY_TEAM];
+      const t2State = t2 ? [...t2.golfers, ...Array(5 - t2.golfers.length).fill(null)] : [...EMPTY_TEAM];
+      if (t1) { setTeam1(t1State); setSavedTeam1([...t1State]); }
+      if (t2) { setTeam2(t2State); setSavedTeam2([...t2State]); }
     } catch {}
   };
 
@@ -265,46 +297,46 @@ export default function MyTeamsPage() {
                 ))}
               </div>
 
-              {/* Budget bar */}
-              <div className="px-4 py-3 bg-slate-50 border-t border-slate-100">
-                <div className="flex justify-between text-xs font-semibold mb-1.5">
-                  <span className={over ? 'text-red-500' : 'text-slate-500'}><DollarSign className="w-3.5 h-3.5 inline" />{fmt(currentCost)} / {fmt(BUDGET)}</span>
-                  <span className={over ? 'text-red-500 font-bold' : 'text-[#1B4332] font-bold'}>
-                    {over ? <><AlertTriangle className="w-3.5 h-3.5 inline mr-0.5" />OVER {fmt(currentCost - BUDGET)}</> : `${fmt(remaining)} left`}
-                  </span>
+              {/* Budget bar + Save button inline */}
+              <div className="px-4 py-3 bg-slate-50 border-t border-slate-100 flex items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between text-xs font-semibold mb-1.5">
+                    <span className={over ? 'text-red-500' : 'text-slate-500'}><DollarSign className="w-3.5 h-3.5 inline" />{fmt(currentCost)} / {fmt(BUDGET)}</span>
+                    <span className={over ? 'text-red-500 font-bold' : 'text-[#1B4332] font-bold'}>
+                      {over ? <><AlertTriangle className="w-3.5 h-3.5 inline mr-0.5" />OVER {fmt(currentCost - BUDGET)}</> : `${fmt(remaining)} left`}
+                    </span>
+                  </div>
+                  <div className="h-2.5 bg-slate-200 rounded-full overflow-hidden">
+                    <div className={`h-full rounded-full budget-bar ${over ? 'bg-red-500' : 'bg-[#1B4332]'}`} style={{ width: `${pct}%` }} />
+                  </div>
                 </div>
-                <div className="h-2.5 bg-slate-200 rounded-full overflow-hidden">
-                  <div className={`h-full rounded-full budget-bar ${over ? 'bg-red-500' : 'bg-[#1B4332]'}`} style={{ width: `${pct}%` }} />
-                </div>
-              </div>
 
-              {/* Save / Auth button */}
-              {!locked && (
-                <div className="p-4 border-t border-slate-100">
-                  {user ? (
-                    <Button onClick={saveTeam} disabled={saving} data-testid={`save-team-${activeTeam}`}
-                      className={`w-full h-11 font-bold text-base ${activeTeam === 1 ? 'bg-[#1B4332] hover:bg-[#2D6A4F]' : 'bg-[#2D6A4F] hover:bg-[#1B4332]'} text-white`}>
-                      {saving ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Save className="w-5 h-5 mr-2" />}
-                      Save Team {activeTeam}
-                    </Button>
-                  ) : (
-                    <div className="space-y-2">
-                      <Button onClick={() => { setAuthMode('register'); setAuthOpen(true); }}
-                        className="w-full h-11 font-bold text-base bg-[#1B4332] hover:bg-[#2D6A4F] text-white">
-                        <UserPlus className="w-5 h-5 mr-2" />Create Account to Save
-                      </Button>
-                      <button onClick={() => { setAuthMode('login'); setAuthOpen(true); }}
-                        className="w-full text-center text-xs text-slate-500 hover:text-[#1B4332] font-medium py-1 transition-colors">
-                        Already have an account? Sign in →
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
+                {!locked && (
+                  <button
+                    onClick={saveTeams}
+                    disabled={saving}
+                    data-testid="save-teams"
+                    className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-bold transition-all ${
+                      saving
+                        ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                        : hasPendingChanges
+                        ? 'bg-yellow-400 text-yellow-900 shadow-md animate-pulse'
+                        : 'bg-[#1B4332] text-white hover:bg-[#2D6A4F]'
+                    }`}
+                  >
+                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    <span>Save</span>
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Golfer List */}
-            <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-xl border border-[#1B4332]/25 shadow-sm overflow-hidden">
+              {/* Themed header accent */}
+              <div className="px-4 py-2.5 bg-gradient-to-r from-[#1B4332]/10 to-[#2D6A4F]/5 border-b border-[#1B4332]/15">
+                <span className="font-heading font-bold text-sm text-[#1B4332] uppercase tracking-wider">Select Golfers</span>
+              </div>
               <div className="p-3 border-b border-slate-100 flex items-center gap-2">
                 <Search className="w-4 h-4 text-slate-400" />
                 <Input data-testid="golfer-search" value={search} onChange={e => setSearch(e.target.value)}

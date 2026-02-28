@@ -4,7 +4,6 @@ import axios from 'axios';
 import { API } from '../App';
 import { Calendar, Users, Clock, ChevronRight, Loader2 } from 'lucide-react';
 import { Badge } from '../components/ui/badge';
-import PaymentBanner from '../components/PaymentBanner';
 
 function formatDate(dateStr) {
   if (!dateStr) return 'TBD';
@@ -62,8 +61,6 @@ export default function HomePage() {
         </h1>
         <p className="text-slate-500 text-sm mt-1">Four tournaments. Infinite glory.</p>
       </div>
-
-      <PaymentBanner />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10 mt-4 stagger" data-testid="tournament-grid">
         {allSlots.map((t) => {
