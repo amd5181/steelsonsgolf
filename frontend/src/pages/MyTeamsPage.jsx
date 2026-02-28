@@ -255,27 +255,26 @@ export default function MyTeamsPage() {
             </div>
           )}
 
-          <div className="mb-4">
-            <div className="flex items-center gap-2 bg-slate-100 rounded-xl p-1 w-fit">
-              <button onClick={() => setActiveTeam(1)} data-testid="toggle-team-1"
-                className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTeam === 1 ? 'bg-[#1B4332] text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-                Team 1
-              </button>
-              <button onClick={() => setActiveTeam(2)} data-testid="toggle-team-2"
-                className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTeam === 2 ? 'bg-[#2D6A4F] text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-                Team 2
-              </button>
-            </div>
-          </div>
-
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
             {/* Team Panel */}
             <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden" data-testid={`team-${activeTeam}-panel`}>
-              <div className={`px-4 py-3 flex items-center justify-between ${activeTeam === 1 ? 'bg-gradient-to-r from-[#1B4332] to-[#2D6A4F]' : 'bg-gradient-to-r from-[#2D6A4F] to-[#1B4332]'}`}>
-                <span className="text-white font-heading font-bold text-sm uppercase tracking-wider">
-                  {user ? `${user.name}'s` : 'Your'} Team {activeTeam}
-                </span>
+              <div className="bg-gradient-to-r from-[#1B4332] to-[#2D6A4F] px-4 py-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-white/70 font-heading font-bold text-xs uppercase tracking-wider hidden sm:block">
+                    {user ? `${user.name}'s` : 'Your'}
+                  </span>
+                  <div className="flex items-center bg-white/15 rounded-lg p-0.5">
+                    <button onClick={() => setActiveTeam(1)} data-testid="toggle-team-1"
+                      className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${activeTeam === 1 ? 'bg-white text-[#1B4332] shadow-sm' : 'text-white/70 hover:text-white'}`}>
+                      Team 1
+                    </button>
+                    <button onClick={() => setActiveTeam(2)} data-testid="toggle-team-2"
+                      className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${activeTeam === 2 ? 'bg-white text-[#2D6A4F] shadow-sm' : 'text-white/70 hover:text-white'}`}>
+                      Team 2
+                    </button>
+                  </div>
+                </div>
                 {!locked && <button onClick={clearTeam} className="text-white/60 hover:text-white" data-testid={`clear-team-${activeTeam}`}><Trash2 className="w-4 h-4" /></button>}
               </div>
 

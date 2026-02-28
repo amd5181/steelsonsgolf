@@ -131,8 +131,9 @@ def calc_tied_scores(scores_list):
 def calc_prices(golfers):
     sorted_g = sorted(golfers, key=lambda x: x.get('odds', 999))
     price = 300000
-    for g in sorted_g:
+    for i, g in enumerate(sorted_g):
         g['price'] = max(75000, price)
+        g['world_ranking'] = i + 1
         price -= 5000
     return sorted_g
 
@@ -518,11 +519,12 @@ async def admin_default_prices(slot: int, user_id: str = Query(...)):
     t = await db.tournaments.find_one({"slot": slot}, {"_id": 0})
     if not t: raise HTTPException(status_code=404, detail="Tournament not found")
     if not t.get("golfers"): raise HTTPException(status_code=400, detail="Fetch golfers first")
-    golfers = t["golfers"]
+    golfers = sorted(t["golfers"], key=lambda x: x.get('odds') or 999)
     price = 300000
-    for g in golfers:
+    for i, g in enumerate(golfers):
         g["price"] = max(75000, price)
         g["odds"] = g.get("odds") or 999
+        g["world_ranking"] = i + 1
         price -= 5000
     await db.tournaments.update_one({"slot": slot}, {"$set": {"golfers": golfers, "status": "prices_set"}})
     return await db.tournaments.find_one({"slot": slot}, {"_id": 0})
