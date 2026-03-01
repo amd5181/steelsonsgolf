@@ -34,9 +34,9 @@ const SLOT_NAMES = ['Masters', 'PGA Championship', 'U.S. Open', 'The Open'];
 
 const SLOT_VENUES = {
   1: { course: 'Augusta National Golf Club', location: 'Augusta, GA' },
-  2: { course: 'Quail Hollow Club', location: 'Charlotte, NC' },
-  3: { course: 'Oakmont Country Club', location: 'Oakmont, PA' },
-  4: { course: 'Royal Portrush', location: 'Portrush, N. Ireland' },
+  2: { course: 'Aronimink Golf Club', location: 'Newtown Square, PA' },
+  3: { course: 'Shinnecock Hills Golf Club', location: 'Southampton, NY' },
+  4: { course: 'Royal Birkdale', location: 'Southport, England' },
 };
 
 const SLOT_1_GIF = 'https://res.cloudinary.com/dsvpfi9te/image/upload/v1772325267/MicrosoftTeams-video_lcv2jg.gif';
@@ -79,6 +79,7 @@ function getActiveSlot(allSlots) {
 export default function HomePage() {
   const [tournaments, setTournaments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [hoveredSlot, setHoveredSlot] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -111,22 +112,25 @@ export default function HomePage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10 mt-4 stagger" data-testid="tournament-grid">
         {allSlots.map((t) => {
           const badge = getStatusBadge(t.status, t.deadline);
+          const showAnimated = hoveredSlot !== null ? t.slot === hoveredSlot : t.slot === activeSlot;
           return (
             <div key={t.slot}
               className="relative bg-white rounded-xl border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.06)] hover:shadow-[0_8px_24px_rgba(27,67,50,0.12)] transition-all duration-300 overflow-hidden group cursor-pointer"
               data-testid={`tournament-card-${t.slot}`}
               onClick={() => t.id ? navigate('/teams') : null}
+              onMouseEnter={() => setHoveredSlot(t.slot)}
+              onMouseLeave={() => setHoveredSlot(null)}
             >
-              {/* Watermark media — animated for nearest deadline, still frame for others */}
+              {/* Watermark media — animated for hovered card (desktop), else active slot */}
               <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
                 {t.slot === 1 ? (
                   <img
-                    src={activeSlot === 1 ? SLOT_1_GIF : getGifFirstFrameUrl()}
+                    src={showAnimated ? SLOT_1_GIF : getGifFirstFrameUrl()}
                     alt=""
                     className="absolute inset-0 w-full h-full object-cover"
                     style={{ filter: 'saturate(1.8)' }}
                   />
-                ) : activeSlot === t.slot ? (
+                ) : showAnimated ? (
                   <video
                     autoPlay
                     muted
