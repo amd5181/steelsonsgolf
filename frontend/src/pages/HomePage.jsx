@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API } from '../App';
-import { Calendar, Users, Clock, ChevronRight, Loader2, MapPin, Play, Tv } from 'lucide-react';
+import { Calendar, Users, Clock, ChevronRight, Loader2, MapPin, Trophy } from 'lucide-react';
 import { Badge } from '../components/ui/badge';
 
 function formatDate(dateStr) {
@@ -204,43 +204,66 @@ function SmallCard({ t, navigate }) {
   );
 }
 
-function GolfChannelCard() {
+function RecentWinnersCard({ recentTournament }) {
+  const PLACE_STYLES = [
+    { dot: 'bg-yellow-400 text-yellow-900', label: '1st', row: 'bg-white/10 border-white/20' },
+    { dot: 'bg-slate-300 text-slate-700',   label: '2nd', row: 'bg-white/5  border-white/10' },
+    { dot: 'bg-amber-500 text-amber-900',   label: '3rd', row: 'bg-white/5  border-white/10' },
+  ];
+
   return (
-    <a
-      href="https://tvpass.org/channel/golf-channel-usa"
-      target="_blank"
-      rel="noopener noreferrer"
-      className="relative rounded-xl overflow-hidden flex flex-col items-center justify-center group cursor-pointer"
+    <div
+      className="relative rounded-xl overflow-hidden flex flex-col"
       style={{ minHeight: '160px', background: 'linear-gradient(135deg, #0a1f15 0%, #1B4332 60%, #2D6A4F 100%)' }}
     >
-      {/* Subtle animated glow ring on hover */}
-      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-        style={{ background: 'radial-gradient(ellipse at center, rgba(45,106,79,0.4) 0%, transparent 70%)' }} />
+      <div className="p-5 flex flex-col h-full">
+        <div className="flex items-center gap-2 mb-3">
+          <Trophy className="w-4 h-4 text-yellow-400" />
+          <span className="text-[10px] font-bold tracking-[0.2em] text-emerald-300 uppercase">Most Recent Winners</span>
+        </div>
 
-      <div className="relative z-10 flex flex-col items-center gap-3 p-6 text-center">
-        <div className="w-14 h-14 rounded-full bg-white/10 border border-white/20 flex items-center justify-center group-hover:bg-white/20 transition-colors duration-200">
-          <Play className="w-6 h-6 text-white ml-0.5" fill="white" />
-        </div>
-        <div>
-          <div className="flex items-center justify-center gap-2 mb-0.5">
-            <Tv className="w-3.5 h-3.5 text-emerald-400" />
-            <span className="text-[10px] font-bold tracking-widest text-emerald-400 uppercase">Live</span>
-          </div>
-          <p className="font-heading font-bold text-xl text-white">Golf Channel</p>
-          <p className="text-emerald-300 text-xs mt-0.5">Watch live coverage</p>
-        </div>
+        {recentTournament ? (
+          <>
+            <p className="font-heading font-bold text-white text-base leading-tight mb-3">
+              {recentTournament.name}
+              <span className="text-emerald-400 font-normal text-sm ml-2">{recentTournament.year}</span>
+            </p>
+            <div className="space-y-2">
+              {recentTournament.winners.slice(0, 3).map((name, i) => (
+                <div key={i} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg border ${PLACE_STYLES[i].row}`}>
+                  <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0 ${PLACE_STYLES[i].dot}`}>
+                    {i + 1}
+                  </span>
+                  <span className={`font-semibold text-sm flex-1 ${i === 0 ? 'text-white' : 'text-white/80'}`}>{name}</span>
+                  <span className="text-xs text-white/40">{PLACE_STYLES[i].label}</span>
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
+          <p className="text-white/50 text-sm mt-auto">No results yet</p>
+        )}
       </div>
-    </a>
+    </div>
   );
 }
 
 export default function HomePage() {
   const [tournaments, setTournaments] = useState([]);
+  const [recentTournament, setRecentTournament] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    axios.get(`${API}/tournaments`).then(r => setTournaments(r.data)).catch(() => {}).finally(() => setLoading(false));
+    Promise.all([
+      axios.get(`${API}/tournaments`).then(r => setTournaments(r.data)).catch(() => {}),
+      axios.get(`${API}/history`).then(r => {
+        const history = r.data;
+        if (history?.length && history[0].tournaments?.length) {
+          setRecentTournament({ ...history[0].tournaments[0], year: history[0].year });
+        }
+      }).catch(() => {}),
+    ]).finally(() => setLoading(false));
   }, []);
 
   const allSlots = [1, 2, 3, 4].map(slot => {
@@ -263,10 +286,10 @@ export default function HomePage() {
       {/* Featured banner */}
       <FeaturedBanner t={featured} navigate={navigate} />
 
-      {/* 3 small cards + Golf Channel in a 2×2 grid */}
+      {/* 3 small cards + Recent Winners in a 2×2 grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 stagger">
         {others.map(t => <SmallCard key={t.slot} t={t} navigate={navigate} />)}
-        <GolfChannelCard />
+        <RecentWinnersCard recentTournament={recentTournament} />
       </div>
     </div>
   );
