@@ -67,7 +67,7 @@ function FeaturedBanner({ t, navigate }) {
   return (
     <div
       className="relative rounded-2xl overflow-hidden cursor-pointer group mb-5"
-      style={{ minHeight: '300px' }}
+      style={{ minHeight: '420px' }}
       data-testid={`tournament-card-${t.slot}`}
       onClick={() => t.id ? navigate('/teams') : null}
     >
@@ -96,7 +96,7 @@ function FeaturedBanner({ t, navigate }) {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 p-6 md:p-10 flex flex-col" style={{ minHeight: '300px' }}>
+      <div className="relative z-10 p-6 md:p-10 flex flex-col" style={{ minHeight: '420px' }}>
         {/* Top: label + badge */}
         <div className="flex items-center gap-3">
           <span className="text-[10px] font-bold tracking-[0.2em] text-emerald-300 uppercase">
@@ -117,29 +117,29 @@ function FeaturedBanner({ t, navigate }) {
             <span className="text-sm text-emerald-400">{venue.location}</span>
           </div>
 
-          <div className="flex flex-wrap items-end justify-between gap-5">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-white/80 text-sm">
-                <Calendar className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                <span>{formatDate(t.start_date)} – {formatDate(t.end_date)}</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm flex-wrap">
-                <Clock className="w-4 h-4 text-amber-400 flex-shrink-0" />
-                <span className="text-white/70">Deadline:</span>
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-md bg-amber-500/20 border border-amber-400/40 text-amber-300 font-bold text-xs">
-                  {formatDeadline(t.deadline)}
-                </span>
-              </div>
-              <div className="flex items-center gap-2 text-white/60 text-sm">
-                <Users className="w-4 h-4 flex-shrink-0" />
-                <span><strong className="text-white/90 font-numbers">{t.team_count}</strong> teams entered</span>
-              </div>
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-white/80 text-base md:text-lg">
+              <Calendar className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+              <span>{formatDate(t.start_date)} – {formatDate(t.end_date)}</span>
+            </div>
+            <div className="flex items-center gap-2 text-base md:text-lg flex-wrap">
+              <Clock className="w-5 h-5 text-amber-400 flex-shrink-0" />
+              <span className="text-white/70">Deadline:</span>
+              <span className="inline-flex items-center px-3 py-1 rounded-md bg-amber-500/20 border border-amber-400/40 text-amber-300 font-bold text-sm md:text-base">
+                {formatDeadline(t.deadline)}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-white/60 text-base md:text-lg">
+              <Users className="w-5 h-5 flex-shrink-0" />
+              <span><strong className="text-white/90 font-numbers">{t.team_count}</strong> teams entered</span>
             </div>
 
             {t.id && t.has_prices && (
-              <button className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-white px-6 py-3 rounded-xl font-bold text-sm transition-all duration-200 group-hover:scale-[1.03] shadow-lg shadow-amber-900/30">
-                Build Your Team <ChevronRight className="w-4 h-4" />
-              </button>
+              <div className="pt-2">
+                <button className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-white px-6 py-3 rounded-xl font-bold text-sm transition-all duration-200 group-hover:scale-[1.03] shadow-lg shadow-amber-900/30">
+                  Build Your Team <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -260,13 +260,6 @@ export default function HomePage() {
 
   return (
     <div className="p-4 md:p-8 max-w-5xl mx-auto animate-fade-in-up" data-testid="tournament-grid">
-      <div className="mb-5">
-        <h1 className="font-heading font-extrabold text-3xl sm:text-4xl text-[#0F172A] tracking-tight" data-testid="home-title">
-          THE MAJORS
-        </h1>
-        <p className="text-slate-500 text-sm mt-1">Four tournaments. Infinite glory.</p>
-      </div>
-
       {/* Featured banner */}
       <FeaturedBanner t={featured} navigate={navigate} />
 
