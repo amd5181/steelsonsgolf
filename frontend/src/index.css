@@ -4,11 +4,16 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+    overscroll-behavior: none;
+}
+
 body {
     margin: 0;
     font-family: 'Manrope', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overscroll-behavior: none;
 }
 
 code {

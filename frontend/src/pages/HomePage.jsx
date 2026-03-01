@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API } from '../App';
-import { Calendar, Users, Clock, ChevronRight, Loader2 } from 'lucide-react';
+import { Calendar, Users, Clock, ChevronRight, Loader2, MapPin } from 'lucide-react';
 import { Badge } from '../components/ui/badge';
 
 function formatDate(dateStr) {
@@ -31,6 +31,13 @@ function getStatusBadge(status, deadline) {
 }
 
 const SLOT_NAMES = ['Masters', 'PGA Championship', 'U.S. Open', 'The Open'];
+
+const SLOT_VENUES = {
+  1: { course: 'Augusta National Golf Club', location: 'Augusta, GA' },
+  2: { course: 'Quail Hollow Club', location: 'Charlotte, NC' },
+  3: { course: 'Oakmont Country Club', location: 'Oakmont, PA' },
+  4: { course: 'Royal Portrush', location: 'Portrush, N. Ireland' },
+};
 
 const SLOT_1_GIF = 'https://res.cloudinary.com/dsvpfi9te/image/upload/v1772325267/MicrosoftTeams-video_lcv2jg.gif';
 
@@ -142,28 +149,45 @@ export default function HomePage() {
               </div>
               <div className="relative z-10">
               <div className="h-2 bg-gradient-to-r from-[#1B4332] to-[#2D6A4F]" />
-              <div className="p-5">
+              <div className="p-5 md:p-6">
                 <div className="flex items-start justify-between mb-3">
                   <h2 className="font-heading font-bold text-xl text-[#0F172A]">{t.name}</h2>
                   <Badge className={badge.cls + ' text-xs font-bold ml-3 flex-shrink-0'}>{badge.text}</Badge>
                 </div>
+
+                {/* Venue */}
+                <div className="flex items-start gap-2 mb-4">
+                  <MapPin className="w-4 h-4 text-[#2D6A4F] mt-0.5 flex-shrink-0" />
+                  <div className="text-sm leading-snug">
+                    <span className="font-semibold text-[#0F172A]">{SLOT_VENUES[t.slot].course}</span>
+                    <span className="text-slate-400"> · </span>
+                    <span className="text-slate-500">{SLOT_VENUES[t.slot].location}</span>
+                  </div>
+                </div>
+
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center gap-2 text-slate-500">
                     <Calendar className="w-4 h-4 text-[#2D6A4F]" />
-                    <span>{formatDate(t.start_date)} - {formatDate(t.end_date)}</span>
+                    <span>{formatDate(t.start_date)} – {formatDate(t.end_date)}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-slate-500">
-                    <Clock className="w-4 h-4 text-amber-500" />
-                    <span>Deadline: <strong className="text-[#0F172A]">{formatDeadline(t.deadline)}</strong></span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Clock className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                    <span className="text-slate-500">Deadline:</span>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-amber-800 font-bold text-xs">
+                      {formatDeadline(t.deadline)}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2 text-slate-500">
                     <Users className="w-4 h-4 text-[#1B4332]" />
                     <span><strong className="text-[#0F172A] font-numbers">{t.team_count}</strong> teams entered</span>
                   </div>
                 </div>
+
                 {t.id && t.has_prices && (
-                  <div className="mt-4 flex items-center text-[#1B4332] text-sm font-bold group-hover:translate-x-1 transition-transform">
-                    Build Your Team <ChevronRight className="w-4 h-4 ml-1" />
+                  <div className="mt-4">
+                    <span className="inline-flex items-center gap-1 bg-amber-500 text-white px-3 py-1.5 rounded-lg text-sm font-bold group-hover:bg-amber-600 group-hover:translate-x-0.5 transition-all duration-200">
+                      Build Your Team <ChevronRight className="w-4 h-4" />
+                    </span>
                   </div>
                 )}
               </div>

@@ -27,7 +27,7 @@ export default function Layout() {
 
   return (
     <TooltipProvider delayDuration={200}>
-      <div className="min-h-screen bg-background pt-16">
+      <div className="min-h-dvh bg-background pt-16">
 
         <header className="fixed top-0 left-0 right-0 z-50 glass shadow-sm h-16 flex items-center px-3 md:px-6" data-testid="top-nav">
 
