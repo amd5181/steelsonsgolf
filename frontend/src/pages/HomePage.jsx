@@ -32,8 +32,9 @@ function getStatusBadge(status, deadline) {
 
 const SLOT_NAMES = ['Masters', 'PGA Championship', 'U.S. Open', 'The Open'];
 
+const SLOT_1_GIF = 'https://res.cloudinary.com/dsvpfi9te/image/upload/v1772325267/MicrosoftTeams-video_lcv2jg.gif';
+
 const SLOT_VIDEOS = {
-  1: 'https://res.cloudinary.com/dsvpfi9te/video/upload/v1772307409/MicrosoftTeams-video_lcv2jg.mp4',
   2: 'https://res.cloudinary.com/dsvpfi9te/video/upload/v1772307415/MicrosoftTeams-video_1_ntghow.mp4',
   3: 'https://res.cloudinary.com/dsvpfi9te/video/upload/v1772307409/MicrosoftTeams-video_3_ajregd.mp4',
   4: 'https://res.cloudinary.com/dsvpfi9te/video/upload/v1772307415/MicrosoftTeams-video_2_hfd5sd.mp4',
@@ -41,8 +42,14 @@ const SLOT_VIDEOS = {
 
 function getStillFrameUrl(videoUrl) {
   return videoUrl
-    .replace('/video/upload/', '/video/upload/so_50p/')
+    .replace('/video/upload/', '/video/upload/so_0/')
     .replace('.mp4', '.jpg');
+}
+
+function getGifFirstFrameUrl() {
+  return SLOT_1_GIF
+    .replace('/image/upload/', '/image/upload/pg_1/')
+    .replace('.gif', '.jpg');
 }
 
 function getActiveSlot(allSlots) {
@@ -105,7 +112,14 @@ export default function HomePage() {
             >
               {/* Watermark media — animated for nearest deadline, still frame for others */}
               <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-                {activeSlot === t.slot ? (
+                {t.slot === 1 ? (
+                  <img
+                    src={activeSlot === 1 ? SLOT_1_GIF : getGifFirstFrameUrl()}
+                    alt=""
+                    className="absolute inset-0 w-full h-full object-cover"
+                    style={{ filter: 'saturate(1.8)' }}
+                  />
+                ) : activeSlot === t.slot ? (
                   <video
                     autoPlay
                     muted
