@@ -313,13 +313,13 @@ export default function LeaderboardPage() {
                     </div>
 
                     {!expanded && (
-                      <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
+                      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                         {standings.map(team => <CollapsedRow key={team.team_id} team={team} />)}
                       </div>
                     )}
 
                     {expanded && standings.map(team => (
-                      <div key={team.team_id} className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden"
+                      <div key={team.team_id} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden"
                         data-testid={`team-standing-${team.rank}`}>
                         <div className="flex items-center px-4 py-3 border-b border-slate-50">
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center font-numbers font-bold text-sm mr-3 flex-shrink-0 ${
