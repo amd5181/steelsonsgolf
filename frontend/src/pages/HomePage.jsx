@@ -192,13 +192,6 @@ function SmallCard({ t, navigate }) {
           </div>
         </div>
 
-        {t.id && t.has_prices && (
-          <div className="mt-3">
-            <span className="inline-flex items-center gap-1 bg-amber-500 text-white px-2.5 py-1 rounded-lg text-xs font-bold group-hover:bg-amber-600 group-hover:translate-x-0.5 transition-all duration-200">
-              Build Your Team <ChevronRight className="w-3 h-3" />
-            </span>
-          </div>
-        )}
       </div>
     </div>
   );
