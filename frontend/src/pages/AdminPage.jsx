@@ -12,6 +12,29 @@ import { Settings, Search, Download, DollarSign, Trash2, Loader2, Users, CheckCi
 
 const fmt = (n) => '$' + (n || 0).toLocaleString();
 
+// Convert a UTC ISO string → "YYYY-MM-DDTHH:MM" in Eastern Time (for datetime-local input)
+function toEasternInput(isoStr) {
+  if (!isoStr) return '';
+  return new Date(isoStr)
+    .toLocaleString('sv-SE', { timeZone: 'America/New_York' })
+    .slice(0, 16)
+    .replace(' ', 'T');
+}
+
+// Convert a datetime-local value (entered as ET) → UTC ISO string
+function easternInputToISO(val) {
+  if (!val) return '';
+  const [date, time = '00:00'] = val.split('T');
+  // Try EDT (-04:00) then EST (-05:00); pick whichever round-trips correctly
+  for (const offset of ['-04:00', '-05:00']) {
+    const d = new Date(`${date}T${time}:00${offset}`);
+    const back = d.toLocaleString('sv-SE', { timeZone: 'America/New_York' })
+      .slice(0, 16).replace(' ', 'T');
+    if (back === `${date}T${time}`) return d.toISOString();
+  }
+  return new Date(`${date}T${time}:00-05:00`).toISOString();
+}
+
 export default function AdminPage() {
   const { user } = useAuth();
   const [tournaments, setTournaments] = useState([]);
@@ -305,16 +328,16 @@ export default function AdminPage() {
               {/* Entry Deadline */}
               <div>
                 <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">
-                  <Calendar className="w-3 h-3 inline mr-1" />Entry Deadline
+                  <Calendar className="w-3 h-3 inline mr-1" />Entry Deadline (ET)
                 </label>
-                <Input 
-                  type="datetime-local" 
+                <Input
+                  type="datetime-local"
                   data-testid={`deadline-${t.slot}`}
-                  defaultValue={t.deadline ? t.deadline.slice(0, 16) : ''}
+                  defaultValue={toEasternInput(t.deadline)}
                   onBlur={e => {
                     const val = e.target.value;
                     if (val) {
-                      const isoDate = new Date(val).toISOString();
+                      const isoDate = easternInputToISO(val);
                       if (isoDate !== t.deadline) {
                         updateTournament(t.slot, { deadline: isoDate });
                         toast.success('Deadline updated');
@@ -325,7 +348,11 @@ export default function AdminPage() {
                 />
                 {t.deadline && (
                   <p className="text-xs text-slate-400 mt-1">
-                    Current: {new Date(t.deadline).toLocaleString()}
+                    Current: {new Date(t.deadline).toLocaleString('en-US', {
+                      timeZone: 'America/New_York',
+                      month: 'short', day: 'numeric', year: 'numeric',
+                      hour: 'numeric', minute: '2-digit'
+                    })} ET
                   </p>
                 )}
               </div>
