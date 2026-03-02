@@ -78,13 +78,15 @@ function getActiveSlot(allSlots) {
 function FeaturedBanner({ t, navigate }) {
   const badge = getStatusBadge(t.status, t.deadline, t.end_date);
   const venue = SLOT_VENUES[t.slot];
+  const deadlinePassed = t.deadline && new Date() > new Date(t.deadline);
+  const destination = deadlinePassed ? '/leaderboard' : '/teams';
 
   return (
     <div
       className="relative rounded-2xl overflow-hidden cursor-pointer group mb-5"
       style={{ minHeight: '420px' }}
       data-testid={`tournament-card-${t.slot}`}
-      onClick={() => t.id ? navigate('/teams') : null}
+      onClick={() => t.id ? navigate(destination) : null}
     >
       {/* Background media */}
       <div className="absolute inset-0">
@@ -146,8 +148,12 @@ function FeaturedBanner({ t, navigate }) {
 
             {t.id && t.has_prices && (
               <div className="pt-2">
-                <button className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-white px-6 py-3 rounded-xl font-bold text-sm transition-all duration-200 group-hover:scale-[1.03] shadow-lg shadow-amber-900/30">
-                  Build Your Team <ChevronRight className="w-4 h-4" />
+                <button className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all duration-200 group-hover:scale-[1.03] shadow-lg text-white ${
+                  deadlinePassed
+                    ? 'bg-[#1B4332] hover:bg-[#2D6A4F] shadow-green-900/30'
+                    : 'bg-amber-500 hover:bg-amber-400 shadow-amber-900/30'
+                }`}>
+                  {deadlinePassed ? 'View Leaderboard' : 'Build Your Team'} <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
             )}
