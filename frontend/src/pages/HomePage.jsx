@@ -107,8 +107,8 @@ function FeaturedBanner({ t, navigate }) {
       {/* Content */}
       <div className="relative z-10 flex flex-col px-6 md:px-10 py-7 md:py-9" style={{ minHeight: '420px' }}>
 
-        {/* ── Label + status badge — centered ── */}
-        <div className="flex items-center justify-center gap-2.5 mb-5">
+        {/* ── Label + status badge ── */}
+        <div className="flex items-center gap-2.5 mb-5">
           <span className="text-xs font-bold tracking-[0.25em] uppercase" style={{ color: LIME }}>
             Featured Tournament
           </span>
@@ -156,8 +156,8 @@ function FeaturedBanner({ t, navigate }) {
           </div>
         </div>
 
-        {/* Divider */}
-        <div className="mb-5" style={{ borderTop: '1px solid rgba(255,255,255,0.18)' }} />
+        {/* Divider — matches width of stats row */}
+        <div className="mb-5" style={{ maxWidth: '340px', borderTop: '1px solid rgba(255,255,255,0.18)' }} />
 
         {/* ── Dates + Deadline (no background band) ── */}
         <div className="flex flex-col sm:flex-row gap-4 sm:gap-8 mb-5">
@@ -185,7 +185,7 @@ function FeaturedBanner({ t, navigate }) {
         {t.id && t.has_prices && (
           <div>
             <button
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all duration-200 active:scale-95 hover:bg-white hover:text-[#1B4332]"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all duration-200 hover:scale-105 hover:bg-white hover:text-[#1B4332] active:scale-95"
               style={{
                 background: '#D4FF3A',
                 color: '#0a1a00',
