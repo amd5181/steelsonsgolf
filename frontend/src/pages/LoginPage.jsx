@@ -5,12 +5,10 @@ import axios from 'axios';
 import { API, useAuth } from '../App';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { InputOTP, InputOTPGroup, InputOTPSlot } from '../components/ui/input-otp';
-import { Trophy, UserPlus, LogIn } from 'lucide-react';
+import { UserPlus, LogIn } from 'lucide-react';
 
 export default function LoginPage() {
   const [mode, setMode] = useState('login');
-  const [pin, setPin] = useState('');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -18,42 +16,30 @@ export default function LoginPage() {
   const navigate = useNavigate();
 
   const handleLogin = async () => {
-    if (pin.length !== 4) { toast.error('Enter your 4-digit PIN'); return; }
+    if (!email.trim()) { toast.error('Enter your email'); return; }
     setLoading(true);
     try {
-      const { data } = await axios.post(`${API}/auth/login`, { pin });
+      const { data } = await axios.post(`${API}/auth/login`, { email: email.trim() });
       login(data);
       toast.success(`Welcome back, ${data.name}!`);
       navigate('/home');
     } catch (e) {
-      toast.error(e.response?.data?.detail || 'Invalid PIN');
+      toast.error(e.response?.data?.detail || 'Email not found. Please register.');
     } finally { setLoading(false); }
   };
 
   const handleRegister = async () => {
     if (!name.trim()) { toast.error('Enter your name'); return; }
     if (!email.trim()) { toast.error('Enter your email'); return; }
-    if (pin.length !== 4) { toast.error('Enter a 4-digit PIN'); return; }
     setLoading(true);
     try {
-      const { data } = await axios.post(`${API}/auth/register`, { name: name.trim(), email: email.trim(), pin });
+      const { data } = await axios.post(`${API}/auth/register`, { name: name.trim(), email: email.trim() });
       login(data);
       toast.success(`Welcome to Steel Sons Golf, ${data.name}!`);
       navigate('/home');
     } catch (e) {
       toast.error(e.response?.data?.detail || 'Registration failed');
     } finally { setLoading(false); }
-  };
-
-  const handlePinChange = (val) => {
-    setPin(val);
-  };
-
-  const handlePinComplete = (val) => {
-    if (val.length === 4 && mode === 'login') {
-      setPin(val);
-      setTimeout(() => handleLogin(), 100);
-    }
   };
 
   return (
@@ -66,9 +52,9 @@ export default function LoginPage() {
       <div className="relative z-10 w-full max-w-sm animate-scale-in">
         <div className="text-center mb-8">
           <div className="mb-4">
-            <img 
-              src="https://images.vexels.com/media/users/3/134963/isolated/preview/7521d9cc865d48ec2dfb2a8a6286c13e-bridge-circle-icon-03.png" 
-              alt="Steel Sons Golf Logo" 
+            <img
+              src="https://images.vexels.com/media/users/3/134963/isolated/preview/7521d9cc865d48ec2dfb2a8a6286c13e-bridge-circle-icon-03.png"
+              alt="Steel Sons Golf Logo"
               className="w-40 h-40 mx-auto object-contain"
               data-testid="login-logo"
             />
@@ -82,49 +68,35 @@ export default function LoginPage() {
         <div className="bg-white rounded-2xl shadow-2xl p-6 space-y-5">
           <div className="flex bg-slate-100 rounded-lg p-1 gap-1">
             <button data-testid="login-tab"
-              onClick={() => { setMode('login'); setPin(''); }}
+              onClick={() => setMode('login')}
               className={`flex-1 py-2 rounded-md text-sm font-bold transition-all ${mode === 'login' ? 'bg-[#1B4332] text-white shadow-sm' : 'text-slate-500'}`}>
               <LogIn className="w-4 h-4 inline mr-1.5 -mt-0.5" />Sign In
             </button>
             <button data-testid="register-tab"
-              onClick={() => { setMode('register'); setPin(''); }}
+              onClick={() => setMode('register')}
               className={`flex-1 py-2 rounded-md text-sm font-bold transition-all ${mode === 'register' ? 'bg-[#1B4332] text-white shadow-sm' : 'text-slate-500'}`}>
               <UserPlus className="w-4 h-4 inline mr-1.5 -mt-0.5" />Create Account
             </button>
           </div>
 
-          {mode === 'register' && (
-            <div className="space-y-3 animate-fade-in">
-              <div>
+          <div className="space-y-3">
+            {mode === 'register' && (
+              <div className="animate-fade-in">
                 <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1 block">Full Name</label>
                 <Input data-testid="register-name" value={name} onChange={e => setName(e.target.value)}
                   placeholder="John Smith" className="h-11 bg-slate-50 border-slate-200 focus:border-[#1B4332]" />
               </div>
-              <div>
-                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1 block">Email</label>
-                <Input data-testid="register-email" type="email" value={email} onChange={e => setEmail(e.target.value)}
-                  placeholder="john@example.com" className="h-11 bg-slate-50 border-slate-200 focus:border-[#1B4332]" />
-              </div>
-            </div>
-          )}
-
-          <div className="text-center">
-            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 block">
-              {mode === 'login' ? 'Enter Your PIN' : 'Choose a 4-Digit PIN'}
-            </label>
-            <div className="flex justify-center" data-testid="pin-input">
-              <InputOTP maxLength={4} value={pin} onChange={handlePinChange} onComplete={handlePinComplete}>
-                <InputOTPGroup className="gap-3">
-                  {[0,1,2,3].map(i => (
-                    <InputOTPSlot key={i} index={i}
-                      className="w-14 h-14 text-2xl font-bold font-heading border-2 border-slate-200 rounded-xl focus:border-[#1B4332] focus:ring-2 focus:ring-[#1B4332]/20" />
-                  ))}
-                </InputOTPGroup>
-              </InputOTP>
+            )}
+            <div>
+              <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1 block">Email</label>
+              <Input data-testid="register-email" type="email" value={email} onChange={e => setEmail(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && (mode === 'login' ? handleLogin() : handleRegister())}
+                placeholder="john@example.com" className="h-11 bg-slate-50 border-slate-200 focus:border-[#1B4332]" />
             </div>
           </div>
 
-          <Button data-testid="auth-submit" className="w-full h-12 bg-[#1B4332] hover:bg-[#2D6A4F] text-white font-bold uppercase tracking-wider rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
+          <Button data-testid="auth-submit"
+            className="w-full h-12 bg-[#1B4332] hover:bg-[#2D6A4F] text-white font-bold uppercase tracking-wider rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
             onClick={mode === 'login' ? handleLogin : handleRegister} disabled={loading}>
             {loading ? 'Loading...' : mode === 'login' ? 'Sign In' : 'Create Account'}
           </Button>
