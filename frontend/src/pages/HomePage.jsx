@@ -15,7 +15,7 @@ function formatDeadline(dateStr) {
   if (!dateStr) return 'TBD';
   try {
     const d = new Date(dateStr);
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/New_York' }) + ' – ' +
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/New_York' }) + ' ' +
       d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' }) + ' ET';
   } catch { return 'TBD'; }
 }
@@ -23,22 +23,18 @@ function formatDeadline(dateStr) {
 function getStatusBadge(status, deadline, end_date) {
   const now = new Date();
 
-  // Date-based completion takes priority over DB status
   if (end_date) {
     const dayAfterEnd = new Date(end_date);
     dayAfterEnd.setDate(dayAfterEnd.getDate() + 1);
     if (now >= dayAfterEnd) return { text: 'Completed', cls: 'bg-slate-500 text-white' };
   } else if (status === 'completed') {
-    // No end_date available, fall back to DB flag
     return { text: 'Completed', cls: 'bg-slate-500 text-white' };
   }
 
-  // Prices not set yet → Coming Soon (ignores any stale DB completed/loaded status)
   if (status !== 'prices_set') {
     return { text: 'Coming Soon', cls: 'bg-slate-300 text-slate-700' };
   }
 
-  // Prices set: open until deadline, then in progress until end
   if (deadline && now > new Date(deadline)) {
     return { text: 'In Progress', cls: 'bg-blue-500 text-white' };
   }
@@ -61,8 +57,6 @@ const SLOT_VIDEOS = {
   4: 'https://res.cloudinary.com/dsvpfi9te/video/upload/v1772420879/MicrosoftTeams-video_2_hfd5sd.mp4',
 };
 
-// Derive a Cloudinary first-frame JPEG poster from any video URL.
-// e.g. .../video/upload/v.../file.mp4 → .../video/upload/so_0/v.../file.jpg
 function getVideoPoster(url) {
   return url.replace('/video/upload/', '/video/upload/so_0/').replace('.mp4', '.jpg');
 }
@@ -75,6 +69,9 @@ function getActiveSlot(allSlots) {
   return withDeadlines[0].slot;
 }
 
+// ─── LIME accent color used throughout the featured banner ───
+const LIME = '#C8FF00';
+
 function FeaturedBanner({ t, navigate }) {
   const badge = getStatusBadge(t.status, t.deadline, t.end_date);
   const venue = SLOT_VENUES[t.slot];
@@ -83,7 +80,7 @@ function FeaturedBanner({ t, navigate }) {
 
   return (
     <div
-      className="relative rounded-2xl overflow-hidden cursor-pointer group mb-5"
+      className="relative rounded-2xl overflow-hidden cursor-pointer mb-5"
       style={{ minHeight: '420px' }}
       data-testid={`tournament-card-${t.slot}`}
       onClick={() => t.id ? navigate(destination) : null}
@@ -96,68 +93,135 @@ function FeaturedBanner({ t, navigate }) {
             preload="auto"
             poster={getVideoPoster(SLOT_VIDEOS[t.slot])}
             className="w-full h-full object-cover"
-            style={{ filter: 'saturate(1.5)' }}
           >
             <source src={SLOT_VIDEOS[t.slot]} type="video/mp4" />
           </video>
         ) : (
-          <div className="w-full h-full bg-[#1B4332]" />
+          <div className="w-full h-full bg-[#0a1a0a]" />
         )}
-        {/* Multi-stop gradient overlay: opaque at bottom, semi-transparent at top */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0a1f15]/95 via-[#1B4332]/75 to-[#1B4332]/40" />
+        {/* Strong dark overlay – matches the screenshot's near-black tint */}
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.72) 100%)' }} />
       </div>
 
       {/* Content */}
-      <div className="relative z-10 p-6 md:p-10 flex flex-col" style={{ minHeight: '420px' }}>
-        {/* Top: label + badge */}
-        <div className="flex items-center gap-3">
-          <span className="text-[10px] font-bold tracking-[0.2em] text-yellow-300 uppercase">
+      <div className="relative z-10 flex flex-col" style={{ minHeight: '420px' }}>
+
+        {/* ── TOP SECTION ── */}
+        <div className="px-6 md:px-10 pt-6 md:pt-8 flex-1">
+          {/* Pool label */}
+          <p
+            className="text-xs font-bold tracking-[0.25em] uppercase mb-3"
+            style={{ color: LIME }}
+          >
             Featured Tournament
-          </span>
-          <Badge className={badge.cls + ' text-xs font-bold'}>{badge.text}</Badge>
+          </p>
+
+          {/* Tournament name + badge */}
+          <div className="flex items-start gap-3 flex-wrap mb-1">
+            <h2
+              className="font-heading font-extrabold leading-none uppercase"
+              style={{ fontSize: 'clamp(2.6rem, 6vw, 4rem)', color: '#ffffff', letterSpacing: '-0.01em' }}
+            >
+              {t.name}
+            </h2>
+            <Badge
+              className="mt-2 text-xs font-bold px-3 py-1"
+              style={{
+                background: 'rgba(255,255,255,0.15)',
+                color: '#ffffff',
+                border: '1px solid rgba(255,255,255,0.3)',
+                backdropFilter: 'blur(4px)',
+              }}
+            >
+              {badge.text}
+            </Badge>
+          </div>
+
+          {/* Venue */}
+          <div className="flex items-center gap-1.5 mt-1 mb-6">
+            <MapPin className="w-4 h-4 flex-shrink-0" style={{ color: LIME }} />
+            <span className="text-white/70 text-sm">{venue.course}</span>
+            <span className="text-white/30 mx-0.5">·</span>
+            <span className="text-white/50 text-sm">{venue.location}</span>
+          </div>
+
+          {/* ── STATS ROW ── mimics the "0 Teams Entered | 123 Golfers" layout */}
+          <div className="flex items-stretch gap-0 mb-8" style={{ maxWidth: '340px' }}>
+            <div className="flex flex-col">
+              <span
+                className="font-extrabold leading-none"
+                style={{ fontSize: '2.8rem', color: LIME, fontVariantNumeric: 'tabular-nums' }}
+              >
+                {t.team_count}
+              </span>
+              <span className="text-white/60 text-sm mt-1">Teams Entered</span>
+            </div>
+            {/* Divider */}
+            <div className="mx-6 w-px self-stretch" style={{ background: 'rgba(255,255,255,0.2)' }} />
+            <div className="flex flex-col">
+              <span
+                className="font-extrabold leading-none"
+                style={{ fontSize: '2.8rem', color: '#ffffff', fontVariantNumeric: 'tabular-nums' }}
+              >
+                {t.golfer_count ?? '—'}
+              </span>
+              <span className="text-white/60 text-sm mt-1">Golfers in Field</span>
+            </div>
+          </div>
         </div>
 
-        {/* Bottom: main info */}
-        <div className="mt-auto pt-10">
-          <h2 className="font-heading font-extrabold text-4xl md:text-5xl text-white mb-2 leading-tight">
-            {t.name}
-          </h2>
-          <div className="flex items-center gap-1.5 text-yellow-300 mb-5">
-            <MapPin className="w-4 h-4 flex-shrink-0" />
-            <span className="text-sm font-medium">{venue.course}</span>
-            <span className="text-yellow-400">·</span>
-            <span className="text-sm text-yellow-300">{venue.location}</span>
-          </div>
-
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 text-white/80 text-base md:text-lg">
-              <Calendar className="w-5 h-5 text-yellow-300 flex-shrink-0" />
+        {/* ── BOTTOM INFO BAR ── dark band with dates + deadline + CTA */}
+        <div
+          className="px-6 md:px-10 py-4 flex flex-col sm:flex-row items-start sm:items-center gap-4"
+          style={{ background: 'rgba(0,0,0,0.55)', borderTop: '1px solid rgba(255,255,255,0.08)' }}
+        >
+          {/* Dates */}
+          <div className="flex flex-col gap-0.5 min-w-max">
+            <span
+              className="text-[10px] font-bold tracking-[0.18em] uppercase"
+              style={{ color: LIME }}
+            >
+              Tournament Dates
+            </span>
+            <div className="flex items-center gap-1.5 text-white/80 text-sm font-semibold">
+              <Calendar className="w-4 h-4 flex-shrink-0" style={{ color: LIME }} />
               <span>{formatDate(t.start_date)} – {formatDate(t.end_date)}</span>
             </div>
-            <div className="flex items-center gap-2 text-base md:text-lg flex-wrap">
-              <Clock className="w-5 h-5 text-amber-400 flex-shrink-0" />
-              <span className="text-white/70">Deadline:</span>
-              <span className="inline-flex items-center px-3 py-1 rounded-md bg-amber-500/20 border border-amber-400/40 text-amber-300 font-bold text-sm md:text-base">
-                {formatDeadline(t.deadline)}
-              </span>
-            </div>
-            <div className="flex items-center gap-2 text-white/60 text-base md:text-lg">
-              <Users className="w-5 h-5 flex-shrink-0" />
-              <span><strong className="text-white/90 font-numbers">{t.team_count}</strong> teams entered</span>
-            </div>
-
-            {t.id && t.has_prices && (
-              <div className="pt-2">
-                <button className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all duration-200 group-hover:scale-[1.03] shadow-lg text-white ${
-                  deadlinePassed
-                    ? 'bg-[#1B4332] hover:bg-[#2D6A4F] shadow-green-900/30'
-                    : 'bg-amber-500 hover:bg-amber-400 shadow-amber-900/30'
-                }`}>
-                  {deadlinePassed ? 'View Leaderboard' : 'Build Your Team'} <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-            )}
           </div>
+
+          {/* Vertical rule */}
+          <div className="hidden sm:block w-px self-stretch mx-2" style={{ background: 'rgba(255,255,255,0.15)' }} />
+
+          {/* Deadline */}
+          <div className="flex flex-col gap-0.5 min-w-max">
+            <span
+              className="text-[10px] font-bold tracking-[0.18em] uppercase"
+              style={{ color: LIME }}
+            >
+              Entry Deadline
+            </span>
+            <div className="flex items-center gap-1.5 text-white/80 text-sm font-semibold">
+              <Clock className="w-4 h-4 flex-shrink-0" style={{ color: LIME }} />
+              <span>{formatDeadline(t.deadline)}</span>
+            </div>
+          </div>
+
+          {/* CTA button – pushed to the right */}
+          {t.id && t.has_prices && (
+            <div className="sm:ml-auto">
+              <button
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all duration-200 hover:opacity-90 active:scale-95"
+                style={{
+                  background: LIME,
+                  color: '#0a1a00',
+                  letterSpacing: '0.02em',
+                  boxShadow: `0 0 20px ${LIME}55`,
+                }}
+              >
+                {deadlinePassed ? 'View Leaderboard' : 'Build Your Team'} <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
