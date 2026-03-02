@@ -138,7 +138,7 @@ function FeaturedBanner({ t, navigate }) {
           <div className="flex flex-col">
             <span
               className="font-extrabold leading-none"
-              style={{ fontSize: '2.8rem', color: LIME, fontVariantNumeric: 'tabular-nums' }}
+              style={{ fontSize: '2rem', color: LIME, fontVariantNumeric: 'tabular-nums' }}
             >
               {t.team_count}
             </span>
@@ -148,7 +148,7 @@ function FeaturedBanner({ t, navigate }) {
           <div className="flex flex-col">
             <span
               className="font-extrabold leading-none"
-              style={{ fontSize: '2.8rem', color: '#ffffff', fontVariantNumeric: 'tabular-nums' }}
+              style={{ fontSize: '2rem', color: '#ffffff', fontVariantNumeric: 'tabular-nums' }}
             >
               {t.golfer_count ?? '—'}
             </span>
@@ -187,7 +187,7 @@ function FeaturedBanner({ t, navigate }) {
             <button
               className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all duration-200 hover:scale-105 hover:bg-white hover:text-[#1B4332] active:scale-95"
               style={{
-                background: '#D4FF3A',
+                background: '#D4B83A',
                 color: '#0a1a00',
                 letterSpacing: '0.02em',
                 boxShadow: `0 0 20px ${LIME}44`,
