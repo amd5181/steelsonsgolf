@@ -20,14 +20,29 @@ function formatDeadline(dateStr) {
   } catch { return 'TBD'; }
 }
 
-function getStatusBadge(status, deadline) {
-  if (status === 'completed') return { text: 'Completed', cls: 'bg-slate-500 text-white' };
-  if (status === 'prices_set') {
-    if (deadline) { try { if (new Date() > new Date(deadline)) return { text: 'Locked', cls: 'bg-amber-500 text-white' }; } catch {} }
-    return { text: 'Open', cls: 'bg-emerald-500 text-white' };
+function getStatusBadge(status, deadline, end_date) {
+  const now = new Date();
+
+  // Date-based completion takes priority over DB status
+  if (end_date) {
+    const dayAfterEnd = new Date(end_date);
+    dayAfterEnd.setDate(dayAfterEnd.getDate() + 1);
+    if (now >= dayAfterEnd) return { text: 'Completed', cls: 'bg-slate-500 text-white' };
+  } else if (status === 'completed') {
+    // No end_date available, fall back to DB flag
+    return { text: 'Completed', cls: 'bg-slate-500 text-white' };
   }
-  if (status === 'golfers_loaded') return { text: 'Setting Up', cls: 'bg-blue-500 text-white' };
-  return { text: 'Coming Soon', cls: 'bg-slate-300 text-slate-700' };
+
+  // Prices not set yet → Coming Soon (ignores any stale DB completed/loaded status)
+  if (status !== 'prices_set') {
+    return { text: 'Coming Soon', cls: 'bg-slate-300 text-slate-700' };
+  }
+
+  // Prices set: open until deadline, then in progress until end
+  if (deadline && now > new Date(deadline)) {
+    return { text: 'In Progress', cls: 'bg-blue-500 text-white' };
+  }
+  return { text: 'Open', cls: 'bg-emerald-500 text-white' };
 }
 
 const SLOT_NAMES = ['Masters', 'PGA Championship', 'U.S. Open', 'The Open'];
@@ -61,7 +76,7 @@ function getActiveSlot(allSlots) {
 }
 
 function FeaturedBanner({ t, navigate }) {
-  const badge = getStatusBadge(t.status, t.deadline);
+  const badge = getStatusBadge(t.status, t.deadline, t.end_date);
   const venue = SLOT_VENUES[t.slot];
 
   return (
@@ -144,7 +159,7 @@ function FeaturedBanner({ t, navigate }) {
 }
 
 function SmallCard({ t, navigate }) {
-  const badge = getStatusBadge(t.status, t.deadline);
+  const badge = getStatusBadge(t.status, t.deadline, t.end_date);
   const venue = SLOT_VENUES[t.slot];
 
   return (
