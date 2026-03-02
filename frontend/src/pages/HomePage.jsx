@@ -15,8 +15,9 @@ function formatDeadline(dateStr) {
   if (!dateStr) return 'TBD';
   try {
     const d = new Date(dateStr);
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/New_York' }) + ' ' +
-      d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' }) + ' ET';
+    const date = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/New_York' });
+    const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' });
+    return `${date} – ${time} ET`;
   } catch { return 'TBD'; }
 }
 
@@ -26,19 +27,19 @@ function getStatusBadge(status, deadline, end_date) {
   if (end_date) {
     const dayAfterEnd = new Date(end_date);
     dayAfterEnd.setDate(dayAfterEnd.getDate() + 1);
-    if (now >= dayAfterEnd) return { text: 'Completed', cls: 'bg-slate-500 text-white' };
+    if (now >= dayAfterEnd) return { text: 'Completed', cls: 'bg-slate-700 text-slate-300', style: { background: '#1e293b', color: '#94a3b8' } };
   } else if (status === 'completed') {
-    return { text: 'Completed', cls: 'bg-slate-500 text-white' };
+    return { text: 'Completed', cls: 'bg-slate-700 text-slate-300', style: { background: '#1e293b', color: '#94a3b8' } };
   }
 
   if (status !== 'prices_set') {
-    return { text: 'Coming Soon', cls: 'bg-slate-300 text-slate-700' };
+    return { text: 'Coming Soon', cls: 'bg-slate-200 text-slate-600', style: { background: 'rgba(255,255,255,0.18)', color: 'rgba(255,255,255,0.75)', border: '1px solid rgba(255,255,255,0.25)' } };
   }
 
   if (deadline && now > new Date(deadline)) {
-    return { text: 'In Progress', cls: 'bg-blue-500 text-white' };
+    return { text: 'In Progress', cls: 'bg-yellow-400 text-yellow-900', style: { background: '#facc15', color: '#713f12' } };
   }
-  return { text: 'Open', cls: 'bg-emerald-500 text-white' };
+  return { text: 'Open', cls: 'bg-emerald-500 text-white', style: { background: '#22c55e', color: '#fff' } };
 }
 
 const SLOT_NAMES = ['Masters', 'PGA Championship', 'U.S. Open', 'The Open'];
@@ -99,130 +100,103 @@ function FeaturedBanner({ t, navigate }) {
         ) : (
           <div className="w-full h-full bg-[#0a1a0a]" />
         )}
-        {/* Strong dark overlay – matches the screenshot's near-black tint */}
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.72) 100%)' }} />
+        {/* Lightened overlay */}
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.28) 0%, rgba(0,0,0,0.52) 100%)' }} />
       </div>
 
       {/* Content */}
-      <div className="relative z-10 flex flex-col" style={{ minHeight: '420px' }}>
+      <div className="relative z-10 flex flex-col px-6 md:px-10 py-7 md:py-9" style={{ minHeight: '420px' }}>
 
-        {/* ── TOP SECTION ── */}
-        <div className="px-6 md:px-10 pt-6 md:pt-8 flex-1">
-          {/* Pool label */}
-          <p
-            className="text-xs font-bold tracking-[0.25em] uppercase mb-3"
-            style={{ color: LIME }}
-          >
+        {/* ── Label + status badge — centered ── */}
+        <div className="flex items-center justify-center gap-2.5 mb-5">
+          <span className="text-xs font-bold tracking-[0.25em] uppercase" style={{ color: LIME }}>
             Featured Tournament
-          </p>
+          </span>
+          <Badge className="text-xs font-bold px-2.5 py-0.5" style={badge.style}>
+            {badge.text}
+          </Badge>
+        </div>
 
-          {/* Tournament name + badge */}
-          <div className="flex items-start gap-3 flex-wrap mb-1">
-            <h2
-              className="font-heading font-extrabold leading-none uppercase"
-              style={{ fontSize: 'clamp(2.6rem, 6vw, 4rem)', color: '#ffffff', letterSpacing: '-0.01em' }}
+        {/* Tournament name */}
+        <h2
+          className="font-heading font-extrabold leading-none uppercase mb-2"
+          style={{ fontSize: 'clamp(2.6rem, 6vw, 4rem)', color: '#ffffff', letterSpacing: '-0.01em' }}
+        >
+          {t.name}
+        </h2>
+
+        {/* Venue */}
+        <div className="flex items-center gap-1.5 mb-6">
+          <MapPin className="w-4 h-4 flex-shrink-0" style={{ color: LIME }} />
+          <span className="text-white text-sm">{venue.course}</span>
+          <span className="text-white/40 mx-0.5">·</span>
+          <span className="text-white/80 text-sm">{venue.location}</span>
+        </div>
+
+        {/* ── Stats row ── */}
+        <div className="flex items-stretch gap-0 mb-5" style={{ maxWidth: '340px' }}>
+          <div className="flex flex-col">
+            <span
+              className="font-extrabold leading-none"
+              style={{ fontSize: '2.8rem', color: LIME, fontVariantNumeric: 'tabular-nums' }}
             >
-              {t.name}
-            </h2>
-            <Badge
-              className="mt-2 text-xs font-bold px-3 py-1"
-              style={{
-                background: 'rgba(255,255,255,0.15)',
-                color: '#ffffff',
-                border: '1px solid rgba(255,255,255,0.3)',
-                backdropFilter: 'blur(4px)',
-              }}
+              {t.team_count}
+            </span>
+            <span className="text-white text-sm mt-1">Teams Entered</span>
+          </div>
+          <div className="mx-6 w-px self-stretch" style={{ background: 'rgba(255,255,255,0.2)' }} />
+          <div className="flex flex-col">
+            <span
+              className="font-extrabold leading-none"
+              style={{ fontSize: '2.8rem', color: '#ffffff', fontVariantNumeric: 'tabular-nums' }}
             >
-              {badge.text}
-            </Badge>
-          </div>
-
-          {/* Venue */}
-          <div className="flex items-center gap-1.5 mt-1 mb-6">
-            <MapPin className="w-4 h-4 flex-shrink-0" style={{ color: LIME }} />
-            <span className="text-white/70 text-sm">{venue.course}</span>
-            <span className="text-white/30 mx-0.5">·</span>
-            <span className="text-white/50 text-sm">{venue.location}</span>
-          </div>
-
-          {/* ── STATS ROW ── mimics the "0 Teams Entered | 123 Golfers" layout */}
-          <div className="flex items-stretch gap-0 mb-8" style={{ maxWidth: '340px' }}>
-            <div className="flex flex-col">
-              <span
-                className="font-extrabold leading-none"
-                style={{ fontSize: '2.8rem', color: LIME, fontVariantNumeric: 'tabular-nums' }}
-              >
-                {t.team_count}
-              </span>
-              <span className="text-white/60 text-sm mt-1">Teams Entered</span>
-            </div>
-            {/* Divider */}
-            <div className="mx-6 w-px self-stretch" style={{ background: 'rgba(255,255,255,0.2)' }} />
-            <div className="flex flex-col">
-              <span
-                className="font-extrabold leading-none"
-                style={{ fontSize: '2.8rem', color: '#ffffff', fontVariantNumeric: 'tabular-nums' }}
-              >
-                {t.golfer_count ?? '—'}
-              </span>
-              <span className="text-white/60 text-sm mt-1">Golfers in Field</span>
-            </div>
+              {t.golfer_count ?? '—'}
+            </span>
+            <span className="text-white text-sm mt-1">Golfers in Field</span>
           </div>
         </div>
 
-        {/* ── BOTTOM INFO BAR ── dark band with dates + deadline + CTA */}
-        <div
-          className="px-6 md:px-10 py-4 flex flex-col sm:flex-row items-start sm:items-center gap-4"
-          style={{ background: 'rgba(0,0,0,0.55)', borderTop: '1px solid rgba(255,255,255,0.08)' }}
-        >
-          {/* Dates */}
-          <div className="flex flex-col gap-0.5 min-w-max">
-            <span
-              className="text-[10px] font-bold tracking-[0.18em] uppercase"
-              style={{ color: LIME }}
-            >
+        {/* Divider */}
+        <div className="mb-5" style={{ borderTop: '1px solid rgba(255,255,255,0.18)' }} />
+
+        {/* ── Dates + Deadline (no background band) ── */}
+        <div className="flex flex-col sm:flex-row gap-4 sm:gap-8 mb-5">
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[10px] font-bold tracking-[0.18em] uppercase" style={{ color: LIME }}>
               Tournament Dates
             </span>
-            <div className="flex items-center gap-1.5 text-white/80 text-sm font-semibold">
+            <div className="flex items-center gap-1.5 text-white text-sm font-semibold">
               <Calendar className="w-4 h-4 flex-shrink-0" style={{ color: LIME }} />
               <span>{formatDate(t.start_date)} – {formatDate(t.end_date)}</span>
             </div>
           </div>
-
-          {/* Vertical rule */}
-          <div className="hidden sm:block w-px self-stretch mx-2" style={{ background: 'rgba(255,255,255,0.15)' }} />
-
-          {/* Deadline */}
-          <div className="flex flex-col gap-0.5 min-w-max">
-            <span
-              className="text-[10px] font-bold tracking-[0.18em] uppercase"
-              style={{ color: LIME }}
-            >
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[10px] font-bold tracking-[0.18em] uppercase" style={{ color: LIME }}>
               Entry Deadline
             </span>
-            <div className="flex items-center gap-1.5 text-white/80 text-sm font-semibold">
+            <div className="flex items-center gap-1.5 text-white text-sm font-semibold">
               <Clock className="w-4 h-4 flex-shrink-0" style={{ color: LIME }} />
               <span>{formatDeadline(t.deadline)}</span>
             </div>
           </div>
-
-          {/* CTA button – pushed to the right */}
-          {t.id && t.has_prices && (
-            <div className="sm:ml-auto">
-              <button
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all duration-200 hover:opacity-90 active:scale-95"
-                style={{
-                  background: LIME,
-                  color: '#0a1a00',
-                  letterSpacing: '0.02em',
-                  boxShadow: `0 0 20px ${LIME}55`,
-                }}
-              >
-                {deadlinePassed ? 'View Leaderboard' : 'Build Your Team'} <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          )}
         </div>
+
+        {/* ── CTA Button ── */}
+        {t.id && t.has_prices && (
+          <div>
+            <button
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all duration-200 active:scale-95 hover:bg-white hover:text-[#1B4332]"
+              style={{
+                background: '#D4FF3A',
+                color: '#0a1a00',
+                letterSpacing: '0.02em',
+                boxShadow: `0 0 20px ${LIME}44`,
+              }}
+            >
+              {deadlinePassed ? 'View Leaderboard' : 'Build Your Team'} <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
