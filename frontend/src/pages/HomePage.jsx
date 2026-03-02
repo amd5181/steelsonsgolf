@@ -39,13 +39,18 @@ const SLOT_VENUES = {
   4: { course: 'Royal Birkdale', location: 'Southport, England' },
 };
 
-const SLOT_1_GIF = 'https://res.cloudinary.com/dsvpfi9te/image/upload/v1772325267/MicrosoftTeams-video_lcv2jg.gif';
-
 const SLOT_VIDEOS = {
-  2: 'https://res.cloudinary.com/dsvpfi9te/video/upload/v1772307415/MicrosoftTeams-video_1_ntghow.mp4',
-  3: 'https://res.cloudinary.com/dsvpfi9te/video/upload/v1772307409/MicrosoftTeams-video_3_ajregd.mp4',
-  4: 'https://res.cloudinary.com/dsvpfi9te/video/upload/v1772307415/MicrosoftTeams-video_2_hfd5sd.mp4',
+  1: 'https://res.cloudinary.com/dsvpfi9te/video/upload/v1772420808/MicrosoftTeams-video_lcv2jg.mp4',
+  2: 'https://res.cloudinary.com/dsvpfi9te/video/upload/v1772420777/MicrosoftTeams-video_3_ajregd.mp4',
+  3: 'https://res.cloudinary.com/dsvpfi9te/video/upload/v1772420862/MicrosoftTeams-video_1_ntghow.mp4',
+  4: 'https://res.cloudinary.com/dsvpfi9te/video/upload/v1772420879/MicrosoftTeams-video_2_hfd5sd.mp4',
 };
+
+// Derive a Cloudinary first-frame JPEG poster from any video URL.
+// e.g. .../video/upload/v.../file.mp4 → .../video/upload/so_0/v.../file.jpg
+function getVideoPoster(url) {
+  return url.replace('/video/upload/', '/video/upload/so_0/').replace('.mp4', '.jpg');
+}
 
 function getActiveSlot(allSlots) {
   const withDeadlines = allSlots.filter(t => t.deadline);
@@ -73,16 +78,11 @@ function FeaturedBanner({ t, navigate }) {
     >
       {/* Background media */}
       <div className="absolute inset-0">
-        {t.slot === 1 ? (
-          <img
-            src={SLOT_1_GIF}
-            alt=""
-            className="w-full h-full object-cover"
-            style={{ filter: 'saturate(1.5)' }}
-          />
-        ) : SLOT_VIDEOS[t.slot] ? (
+        {SLOT_VIDEOS[t.slot] ? (
           <video
             autoPlay muted loop playsInline
+            preload="auto"
+            poster={getVideoPoster(SLOT_VIDEOS[t.slot])}
             className="w-full h-full object-cover"
             style={{ filter: 'saturate(1.5)' }}
           >
