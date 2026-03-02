@@ -8,11 +8,10 @@ import { Badge } from '../components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
-import { Settings, Search, Download, DollarSign, Trash2, Loader2, Users, CheckCircle, ClipboardPaste, FileSpreadsheet, Calendar, Eye, Pencil, X, Mail } from 'lucide-react';
+import { Search, Download, DollarSign, Trash2, Loader2, Users, CheckCircle, ClipboardPaste, FileSpreadsheet, Calendar, Eye, Pencil, X, Mail, Upload, Link2, AlertTriangle, Plus } from 'lucide-react';
 
 const fmt = (n) => '$' + (n || 0).toLocaleString();
 
-// Convert a UTC ISO string → "YYYY-MM-DDTHH:MM" in Eastern Time (for datetime-local input)
 function toEasternInput(isoStr) {
   if (!isoStr) return '';
   return new Date(isoStr)
@@ -21,11 +20,9 @@ function toEasternInput(isoStr) {
     .replace(' ', 'T');
 }
 
-// Convert a datetime-local value (entered as ET) → UTC ISO string
 function easternInputToISO(val) {
   if (!val) return '';
   const [date, time = '00:00'] = val.split('T');
-  // Try EDT (-04:00) then EST (-05:00); pick whichever round-trips correctly
   for (const offset of ['-04:00', '-05:00']) {
     const d = new Date(`${date}T${time}:00${offset}`);
     const back = d.toLocaleString('sv-SE', { timeZone: 'America/New_York' })
@@ -47,6 +44,18 @@ export default function AdminPage() {
   const [teamsDialog, setTeamsDialog] = useState({ open: false, tournament: null, teams: [] });
   const [editingTeam, setEditingTeam] = useState(null);
   const [editGolfers, setEditGolfers] = useState([]);
+
+  // Upload players dialog
+  const [uploadDialog, setUploadDialog] = useState({ open: false, slot: null });
+  const [uploadText, setUploadText] = useState('');
+
+  // ESPN Sync dialog
+  const [syncDialog, setSyncDialog] = useState({ open: false, slot: null });
+  const [syncMatched, setSyncMatched] = useState([]);
+  const [syncUnmatchedSite, setSyncUnmatchedSite] = useState([]);
+  const [syncUnmatchedEspn, setSyncUnmatchedEspn] = useState([]);
+  const [syncRemovals, setSyncRemovals] = useState(new Set());
+  const [syncEspnAdds, setSyncEspnAdds] = useState({});  // { espn_id: price_string }
 
   const fetchTournaments = async () => {
     try {
@@ -88,9 +97,95 @@ export default function AdminPage() {
     try {
       await axios.post(`${API}/admin/fetch-golfers/${slot}?user_id=${user.id}`);
       await fetchTournaments();
-      toast.success('Golfers loaded!');
+      toast.success('Golfers loaded from ESPN!');
     } catch (e) { toast.error(e.response?.data?.detail || 'Failed to fetch golfers'); }
     finally { setActionLoading(p => ({ ...p, [`golfers_${slot}`]: false })); }
+  };
+
+  const submitUpload = async () => {
+    if (!uploadText.trim()) { toast.error('Paste player data first'); return; }
+    setActionLoading(p => ({ ...p, [`upload_${uploadDialog.slot}`]: true }));
+    try {
+      await axios.post(`${API}/admin/upload-players/${uploadDialog.slot}?user_id=${user.id}`, { players_text: uploadText });
+      await fetchTournaments();
+      toast.success('Players uploaded!');
+      setUploadDialog({ open: false, slot: null });
+      setUploadText('');
+    } catch (e) { toast.error(e.response?.data?.detail || 'Upload failed'); }
+    finally { setActionLoading(p => ({ ...p, [`upload_${uploadDialog.slot}`]: false })); }
+  };
+
+  const startSync = async (slot) => {
+    setActionLoading(p => ({ ...p, [`sync_${slot}`]: true }));
+    try {
+      const r = await axios.post(`${API}/admin/espn-sync/${slot}?user_id=${user.id}`);
+      setSyncMatched(r.data.matched || []);
+      setSyncUnmatchedSite(r.data.unmatched_site || []);
+      setSyncUnmatchedEspn(r.data.unmatched_espn || []);
+      setSyncRemovals(new Set());
+      setSyncEspnAdds({});
+      setSyncDialog({ open: true, slot });
+    } catch (e) { toast.error(e.response?.data?.detail || 'Sync failed'); }
+    finally { setActionLoading(p => ({ ...p, [`sync_${slot}`]: false })); }
+  };
+
+  const unmatchPair = (match) => {
+    setSyncMatched(prev => prev.filter(m => m.site_name !== match.site_name));
+    setSyncUnmatchedSite(prev => [...prev, { name: match.site_name, price: match.price }]);
+    setSyncUnmatchedEspn(prev => [...prev, { espn_id: match.espn_id, name: match.espn_name }]);
+  };
+
+  const linkSitePlayer = (siteName, sitePrice, espnId) => {
+    const espnPlayer = syncUnmatchedEspn.find(e => e.espn_id === espnId);
+    if (!espnPlayer) return;
+    setSyncMatched(prev => [...prev, { site_name: siteName, espn_id: espnId, espn_name: espnPlayer.name, price: sitePrice, confidence: 'manual' }]);
+    setSyncUnmatchedSite(prev => prev.filter(s => s.name !== siteName));
+    setSyncUnmatchedEspn(prev => prev.filter(e => e.espn_id !== espnId));
+    setSyncRemovals(prev => { const n = new Set(prev); n.delete(siteName); return n; });
+  };
+
+  const toggleRemoval = (siteName) => {
+    setSyncRemovals(prev => {
+      const n = new Set(prev);
+      if (n.has(siteName)) n.delete(siteName); else n.add(siteName);
+      return n;
+    });
+  };
+
+  const toggleEspnAdd = (espnId) => {
+    setSyncEspnAdds(prev => {
+      const n = { ...prev };
+      if (espnId in n) delete n[espnId]; else n[espnId] = '';
+      return n;
+    });
+  };
+
+  const confirmSync = async () => {
+    const slot = syncDialog.slot;
+    setActionLoading(p => ({ ...p, confirmSync: true }));
+    try {
+      const add_from_espn = Object.entries(syncEspnAdds)
+        .filter(([, price]) => price && parseInt(price) > 0)
+        .map(([espn_id, price]) => {
+          const ep = syncUnmatchedEspn.find(e => e.espn_id === espn_id) ||
+                     { espn_id, name: '' };
+          return { espn_id, espn_name: ep.name, price: parseInt(price) };
+        });
+      const r = await axios.post(`${API}/admin/espn-sync/${slot}/confirm?user_id=${user.id}`, {
+        matched: syncMatched.map(m => ({ site_name: m.site_name, espn_id: m.espn_id, espn_name: m.espn_name })),
+        add_from_espn,
+        remove_from_site: Array.from(syncRemovals),
+      });
+      await fetchTournaments();
+      const affected = r.data.affected_teams || [];
+      if (affected.length > 0) {
+        toast.warning(`Sync complete — ${affected.length} team(s) have removed players. Check those teams.`);
+      } else {
+        toast.success(`Sync complete! ${r.data.golfers_count} players linked to ESPN.`);
+      }
+      setSyncDialog({ open: false, slot: null });
+    } catch (e) { toast.error(e.response?.data?.detail || 'Confirm failed'); }
+    finally { setActionLoading(p => ({ ...p, confirmSync: false })); }
   };
 
   const submitOdds = async () => {
@@ -160,7 +255,6 @@ export default function AdminPage() {
     try {
       await axios.put(`${API}/admin/teams/${editingTeam.id}?user_id=${user.id}`, { golfers: editGolfers });
       toast.success('Team updated!');
-      // Refresh teams list
       const r = await axios.get(`${API}/admin/teams/${teamsDialog.tournament.id}?user_id=${user.id}`);
       setTeamsDialog(p => ({ ...p, teams: r.data.teams }));
       setEditingTeam(null);
@@ -174,12 +268,10 @@ export default function AdminPage() {
     try {
       await axios.delete(`${API}/admin/teams/${teamId}?user_id=${user.id}`);
       toast.success('Team deleted!');
-      // Refresh teams list
       const r = await axios.get(`${API}/admin/teams/${teamsDialog.tournament.id}?user_id=${user.id}`);
       setTeamsDialog(p => ({ ...p, teams: r.data.teams }));
     } catch (e) { toast.error(e.response?.data?.detail || 'Delete failed'); }
   };
-
 
   const exportEmails = () => {
     const seen = new Set();
@@ -187,7 +279,6 @@ export default function AdminPage() {
       .map(t => t.user_email)
       .filter(e => e && !seen.has(e) && seen.add(e));
     if (emails.length === 0) { toast.error('No emails found'); return; }
-    // Download as .csv
     const csv = 'Email\n' + emails.join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -198,7 +289,6 @@ export default function AdminPage() {
     URL.revokeObjectURL(url);
     toast.success(`Exported ${emails.length} emails`);
   };
-
 
   const togglePaid = async (teamId, currentPaid) => {
     try {
@@ -215,13 +305,16 @@ export default function AdminPage() {
     return t || { slot, name: '', status: 'setup', golfers: [] };
   });
 
+  const needsEspnSync = (t) =>
+    t.golfers?.length > 0 && t.espn_event_id &&
+    t.golfers.some(g => !g.espn_id);
+
   if (loading) return <div className="flex items-center justify-center h-[60vh]"><Loader2 className="w-8 h-8 text-[#1B4332] animate-spin" /></div>;
 
   return (
     <div className="p-4 md:p-8 max-w-5xl mx-auto animate-fade-in-up" data-testid="admin-page">
       <div className="mb-6">
         <h1 className="font-heading font-extrabold text-3xl sm:text-4xl text-[#0F172A] tracking-tight">ADMIN</h1>
-        <p className="text-slate-500 text-sm mt-1">Tournament Setup & Management</p>
       </div>
 
       {/* ESPN Event Search */}
@@ -250,16 +343,17 @@ export default function AdminPage() {
                 <span className="text-white font-heading font-bold text-sm uppercase tracking-wider">Major {t.slot}</span>
                 {t.status === 'prices_set' && <Badge className="bg-[#CCFF00] text-[#0F172A] text-[10px]"><CheckCircle className="w-3 h-3 mr-0.5" />Ready</Badge>}
                 {t.status === 'golfers_loaded' && <Badge className="bg-blue-400 text-white text-[10px]">Golfers Loaded</Badge>}
+                {needsEspnSync(t) && <Badge className="bg-amber-400 text-amber-900 text-[10px]"><AlertTriangle className="w-3 h-3 mr-0.5" />Needs ESPN Sync</Badge>}
               </div>
               <div className="flex items-center gap-2">
                 {t.id && (
-                  <Button size="sm" variant="ghost" onClick={() => viewTeams(t)} 
+                  <Button size="sm" variant="ghost" onClick={() => viewTeams(t)}
                     disabled={actionLoading[`teams_${t.slot}`]}
                     className="h-7 px-2 text-white/80 hover:text-white hover:bg-white/10" data-testid={`view-teams-${t.slot}`}>
                     {actionLoading[`teams_${t.slot}`] ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><Eye className="w-3.5 h-3.5 mr-1" />Teams</>}
                   </Button>
                 )}
-                <button onClick={() => resetTournament(t.slot)} 
+                <button onClick={() => resetTournament(t.slot)}
                   disabled={actionLoading[`reset_${t.slot}`]}
                   className="text-white/50 hover:text-white transition-colors disabled:opacity-30" data-testid={`reset-slot-${t.slot}`}>
                   {actionLoading[`reset_${t.slot}`] ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
@@ -284,7 +378,7 @@ export default function AdminPage() {
                       <SelectContent>
                         {espnEvents.map(ev => (
                           <SelectItem key={ev.espn_id} value={ev.espn_id}>
-                            {ev.name} ({ev.status?.replace('STATUS_','')})
+                            {ev.name} ({ev.status?.replace('STATUS_', '')})
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -294,12 +388,27 @@ export default function AdminPage() {
                       onBlur={e => updateTournament(t.slot, { espn_event_id: e.target.value })}
                       placeholder="Search ESPN events above first" className="h-9 flex-1" />
                   )}
+                </div>
+                {/* Load Field row */}
+                <div className="flex gap-2 flex-wrap mt-2">
                   <Button onClick={() => fetchGolfers(t.slot)} disabled={!t.espn_event_id || actionLoading[`golfers_${t.slot}`]}
                     data-testid={`fetch-golfers-${t.slot}`}
                     className="h-9 bg-[#2D6A4F] text-white hover:bg-[#1B4332]">
                     {actionLoading[`golfers_${t.slot}`] ? <Loader2 className="w-4 h-4 animate-spin" /> :
-                      <><Download className="w-4 h-4 mr-1" />Fetch Golfers</>}
+                      <><Download className="w-4 h-4 mr-1" />Fetch from ESPN</>}
                   </Button>
+                  <Button onClick={() => { setUploadDialog({ open: true, slot: t.slot }); setUploadText(''); }}
+                    variant="outline" data-testid={`upload-players-${t.slot}`} className="h-9">
+                    <Upload className="w-4 h-4 mr-1" />Upload Players
+                  </Button>
+                  {needsEspnSync(t) && (
+                    <Button onClick={() => startSync(t.slot)} disabled={actionLoading[`sync_${t.slot}`]}
+                      data-testid={`sync-espn-${t.slot}`}
+                      className="h-9 bg-amber-500 text-white hover:bg-amber-600">
+                      {actionLoading[`sync_${t.slot}`] ? <Loader2 className="w-4 h-4 animate-spin" /> :
+                        <><Link2 className="w-4 h-4 mr-1" />Sync to ESPN</>}
+                    </Button>
+                  )}
                 </div>
               </div>
               {/* Pricing */}
@@ -362,6 +471,11 @@ export default function AdminPage() {
                     <Users className="w-4 h-4 text-slate-400" />
                     <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{t.golfers.length} Golfers</span>
                     {t.golfers[0]?.price && <Badge variant="outline" className="text-[10px]">Prices Set</Badge>}
+                    {needsEspnSync(t) && (
+                      <Badge variant="outline" className="text-[10px] border-amber-300 text-amber-600">
+                        {t.golfers.filter(g => !g.espn_id).length} without ESPN link
+                      </Badge>
+                    )}
                   </div>
                   <ScrollArea className="h-40">
                     <div className="divide-y divide-slate-50">
@@ -369,6 +483,7 @@ export default function AdminPage() {
                         <div key={i} className="flex items-center py-1.5 text-xs px-1">
                           <span className="w-6 font-numbers font-bold text-slate-300">{i + 1}</span>
                           <span className="flex-1 text-slate-700">{g.name}</span>
+                          {!g.espn_id && <span className="text-[10px] text-amber-400 mr-2">no ESPN</span>}
                           {g.price && <span className="font-numbers font-bold text-[#2D6A4F]">{fmt(g.price)}</span>}
                         </div>
                       ))}
@@ -380,6 +495,201 @@ export default function AdminPage() {
           </div>
         ))}
       </div>
+
+      {/* Upload Players Dialog */}
+      <Dialog open={uploadDialog.open} onOpenChange={(open) => { if (!open) setUploadDialog({ open: false, slot: null }); }}>
+        <DialogContent className="sm:max-w-lg" data-testid="upload-dialog">
+          <DialogHeader>
+            <DialogTitle className="font-heading font-bold text-xl">Upload Players & Prices</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-slate-500">
+              Paste one player per line. Use name + price format — commas, tabs, or spaces work.
+              This replaces any existing player list for this slot.
+            </p>
+            <p className="text-xs text-slate-400">
+              Formats: <code className="bg-slate-100 px-1 rounded">Scottie Scheffler, 300000</code> or{' '}
+              <code className="bg-slate-100 px-1 rounded">Scottie Scheffler $300,000</code>
+            </p>
+            <textarea
+              data-testid="upload-textarea"
+              value={uploadText}
+              onChange={e => setUploadText(e.target.value)}
+              placeholder={"Scottie Scheffler, 300000\nRory McIlroy, 250000\nJon Rahm, 200000\n..."}
+              className="w-full h-56 border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1B4332]/20 focus:border-[#1B4332] resize-none font-mono"
+            />
+            <Button
+              data-testid="upload-submit"
+              onClick={submitUpload}
+              disabled={actionLoading[`upload_${uploadDialog.slot}`]}
+              className="w-full h-10 bg-[#1B4332] text-white hover:bg-[#2D6A4F] font-bold">
+              {actionLoading[`upload_${uploadDialog.slot}`] ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-1" />}
+              Upload Players
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ESPN Sync Review Dialog */}
+      <Dialog open={syncDialog.open} onOpenChange={(open) => { if (!open) setSyncDialog({ open: false, slot: null }); }}>
+        <DialogContent className="sm:max-w-2xl h-[90vh] flex flex-col" data-testid="sync-dialog">
+          <DialogHeader>
+            <DialogTitle className="font-heading font-bold text-xl flex items-center gap-2">
+              <Link2 className="w-5 h-5" />Sync to ESPN
+            </DialogTitle>
+            <p className="text-sm text-slate-500 mt-1">
+              Review matches, link unmatched players manually, then confirm.
+            </p>
+          </DialogHeader>
+          <ScrollArea className="flex-1 min-h-0 pr-1">
+            <div className="space-y-5 pb-4">
+
+              {/* Matched Players */}
+              {syncMatched.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
+                    <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
+                    Matched ({syncMatched.length})
+                  </h4>
+                  <div className="space-y-1">
+                    {syncMatched.map((m, i) => (
+                      <div key={i} className="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2 text-xs">
+                        <div className="flex-1 min-w-0">
+                          <span className="text-slate-700 font-medium">{m.site_name}</span>
+                          <span className="text-slate-400 mx-1.5">→</span>
+                          <span className="text-[#1B4332] font-medium">{m.espn_name}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {m.confidence === 'high' && <Badge className="bg-emerald-100 text-emerald-700 text-[10px] px-1.5">exact</Badge>}
+                          {m.confidence === 'medium' && <Badge className="bg-amber-100 text-amber-700 text-[10px] px-1.5">⚠ review</Badge>}
+                          {m.confidence === 'manual' && <Badge className="bg-blue-100 text-blue-700 text-[10px] px-1.5">manual</Badge>}
+                          <button onClick={() => unmatchPair(m)} className="text-slate-300 hover:text-red-400 transition-colors" title="Unmatch">
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Unmatched Site Players */}
+              {syncUnmatchedSite.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+                    Unmatched — Your Players ({syncUnmatchedSite.length})
+                  </h4>
+                  <div className="space-y-2">
+                    {syncUnmatchedSite.map((sp, i) => {
+                      const isRemoved = syncRemovals.has(sp.name);
+                      return (
+                        <div key={i} className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs border ${isRemoved ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-100'}`}>
+                          <div className="w-32 shrink-0">
+                            <span className={`font-medium ${isRemoved ? 'line-through text-slate-400' : 'text-slate-700'}`}>{sp.name}</span>
+                            {sp.price && <span className="block text-slate-400 font-numbers">{fmt(sp.price)}</span>}
+                          </div>
+                          <div className="flex-1 flex items-center gap-2">
+                            {!isRemoved ? (
+                              <>
+                                <Select onValueChange={val => linkSitePlayer(sp.name, sp.price, val)}>
+                                  <SelectTrigger className="h-7 text-xs flex-1">
+                                    <SelectValue placeholder="Link to ESPN player..." />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {syncUnmatchedEspn.map(ep => (
+                                      <SelectItem key={ep.espn_id} value={ep.espn_id}>{ep.name}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <button onClick={() => toggleRemoval(sp.name)}
+                                  className="shrink-0 text-xs text-red-400 hover:text-red-600 underline whitespace-nowrap">
+                                  Remove
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <span className="flex-1 text-xs text-red-500 italic">Will be removed from field</span>
+                                <button onClick={() => toggleRemoval(sp.name)}
+                                  className="shrink-0 text-xs text-slate-400 hover:text-slate-600 underline">
+                                  Undo
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Unmatched ESPN Players */}
+              {syncUnmatchedEspn.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
+                    <Plus className="w-3.5 h-3.5 text-blue-500" />
+                    ESPN Players Not in Your Field ({syncUnmatchedEspn.length})
+                  </h4>
+                  <div className="space-y-1">
+                    {syncUnmatchedEspn.map((ep, i) => {
+                      const isAdding = ep.espn_id in syncEspnAdds;
+                      return (
+                        <div key={i} className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs border ${isAdding ? 'bg-blue-50 border-blue-200' : 'bg-slate-50 border-slate-100'}`}>
+                          <span className="flex-1 text-slate-700">{ep.name}</span>
+                          {isAdding && (
+                            <div className="flex items-center gap-1 shrink-0">
+                              <span className="text-slate-400">$</span>
+                              <Input
+                                type="number"
+                                placeholder="Price"
+                                value={syncEspnAdds[ep.espn_id]}
+                                onChange={e => setSyncEspnAdds(prev => ({ ...prev, [ep.espn_id]: e.target.value }))}
+                                className="h-6 w-24 text-xs px-2"
+                              />
+                            </div>
+                          )}
+                          <button
+                            onClick={() => toggleEspnAdd(ep.espn_id)}
+                            className={`shrink-0 text-xs underline ${isAdding ? 'text-blue-500 hover:text-blue-700' : 'text-slate-400 hover:text-slate-600'}`}>
+                            {isAdding ? 'Cancel' : 'Add to field'}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {syncMatched.length === 0 && syncUnmatchedSite.length === 0 && syncUnmatchedEspn.length === 0 && (
+                <div className="text-center py-8 text-slate-400">
+                  <CheckCircle className="w-10 h-10 mx-auto mb-2 text-emerald-400" />
+                  <p className="text-sm">All players matched!</p>
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+
+          {/* Summary + Confirm */}
+          <div className="pt-3 border-t border-slate-100 space-y-2">
+            {syncUnmatchedSite.filter(s => !syncRemovals.has(s.name)).length > 0 && (
+              <p className="text-xs text-amber-600 flex items-center gap-1">
+                <AlertTriangle className="w-3.5 h-3.5" />
+                {syncUnmatchedSite.filter(s => !syncRemovals.has(s.name)).length} player(s) will remain without an ESPN link — their scores won't update live.
+              </p>
+            )}
+            <Button onClick={confirmSync} disabled={actionLoading.confirmSync}
+              data-testid="sync-confirm-btn"
+              className="w-full h-10 bg-[#1B4332] text-white hover:bg-[#2D6A4F] font-bold">
+              {actionLoading.confirmSync ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Link2 className="w-4 h-4 mr-1" />}
+              Confirm Sync ({syncMatched.length} matched
+              {Object.values(syncEspnAdds).filter(p => p && parseInt(p) > 0).length > 0 &&
+                `, +${Object.values(syncEspnAdds).filter(p => p && parseInt(p) > 0).length} added`}
+              {syncRemovals.size > 0 && `, ${syncRemovals.size} removed`})
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Odds Import Dialog */}
       <Dialog open={oddsDialog.open} onOpenChange={(open) => { if (!open) setOddsDialog({ open: false, slot: null }); }}>
@@ -418,9 +728,8 @@ export default function AdminPage() {
               )}
             </div>
           </DialogHeader>
-          
+
           {editingTeam ? (
-            // Edit mode
             <div className="flex-1 overflow-auto">
               <div className="mb-4">
                 <div className="flex items-center justify-between mb-2">
@@ -475,7 +784,6 @@ export default function AdminPage() {
               </div>
             </div>
           ) : (
-            // List mode
             <ScrollArea className="flex-1 min-h-0">
               {teamsDialog.teams.length === 0 ? (
                 <div className="text-center py-8 text-slate-400">
@@ -492,7 +800,6 @@ export default function AdminPage() {
                           <span className="text-xs text-slate-400 ml-2">{team.user_email}</span>
                         </div>
                         <div className="flex items-center gap-1.5">
-                          {/* Paid toggle */}
                           <button
                             onClick={() => togglePaid(team.id, team.paid)}
                             className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-bold border transition-colors ${

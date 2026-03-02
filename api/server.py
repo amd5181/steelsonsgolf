@@ -13,6 +13,7 @@ import requests
 import asyncio
 import io
 import csv
+import re
 import httpx
 from supabase_mongo_compat import SupabaseMongoCompat
 
@@ -31,6 +32,13 @@ logger = logging.getLogger(__name__)
 ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "").lower().strip()
 ESPN_BASE = "https://site.api.espn.com/apis/site/v2/sports/golf/pga"
 ODDS_API_BASE = "https://api.the-odds-api.com/v4"
+
+def _normalize_name(name: str) -> str:
+    """Normalize a player name for fuzzy matching."""
+    name = name.lower().strip()
+    name = re.sub(r"[.'''\-]", '', name)
+    name = re.sub(r'\s+', ' ', name)
+    return name
 
 def gen_id():
     return str(uuid.uuid4())
@@ -515,6 +523,127 @@ async def admin_default_prices(slot: int, user_id: str = Query(...)):
         price -= 5000
     await db.tournaments.update_one({"slot": slot}, {"$set": {"golfers": golfers, "status": "prices_set"}})
     return await db.tournaments.find_one({"slot": slot}, {"_id": 0})
+
+@api_router.post("/admin/upload-players/{slot}")
+async def admin_upload_players(slot: int, user_id: str = Query(...), body: dict = {}):
+    """Manually upload players with prices. Format: 'Name, Price' per line."""
+    await check_admin(user_id)
+    t = await db.tournaments.find_one({"slot": slot}, {"_id": 0})
+    if not t:
+        raise HTTPException(status_code=404, detail="Tournament not found")
+    players_text = body.get("players_text", "")
+    if not players_text:
+        raise HTTPException(status_code=400, detail="No player data provided")
+    lines = [l.strip() for l in players_text.strip().split('\n') if l.strip()]
+    players = []
+    for line in lines:
+        line_clean = re.sub(r'[$,]', '', line)
+        parts = re.split(r'[\t,]+', line_clean, maxsplit=1)
+        if len(parts) == 2:
+            name, price_str = parts[0].strip(), parts[1].strip()
+        else:
+            m = re.match(r'^(.+?)\s+([\d]+)\s*$', line_clean)
+            if not m:
+                continue
+            name, price_str = m.group(1).strip(), m.group(2).strip()
+        try:
+            price = int(float(price_str))
+        except ValueError:
+            continue
+        if name and price > 0:
+            players.append({"espn_id": None, "name": name, "short_name": "",
+                            "world_ranking": len(players) + 1, "odds": None, "price": price})
+    if not players:
+        raise HTTPException(status_code=400, detail="Could not parse any players. Use format: Name, Price (one per line)")
+    await db.tournaments.update_one({"slot": slot}, {"$set": {"golfers": players, "status": "prices_set"}})
+    return await db.tournaments.find_one({"slot": slot}, {"_id": 0})
+
+@api_router.post("/admin/espn-sync/{slot}")
+async def admin_espn_sync_preview(slot: int, user_id: str = Query(...)):
+    """Fetch ESPN field and fuzzy-match against existing players. Returns preview for review."""
+    await check_admin(user_id)
+    t = await db.tournaments.find_one({"slot": slot}, {"_id": 0})
+    if not t:
+        raise HTTPException(status_code=404, detail="Tournament not found")
+    if not t.get("espn_event_id"):
+        raise HTTPException(status_code=400, detail="Map an ESPN event first")
+    if not t.get("golfers"):
+        raise HTTPException(status_code=400, detail="Upload players first")
+    espn_golfers, _ = await espn_get_field(t["espn_event_id"], t.get("start_date", ""))
+    if not espn_golfers:
+        raise HTTPException(status_code=400, detail="ESPN field not available yet — try again when the field is posted")
+    site_players = t["golfers"]
+    used_espn_ids = set()
+    matched = []
+    unmatched_site = []
+    for sp in site_players:
+        site_norm = _normalize_name(sp['name'])
+        site_parts = site_norm.split()
+        site_last = site_parts[-1] if site_parts else ''
+        site_first_init = site_parts[0][0] if site_parts and site_parts[0] else ''
+        found = None
+        confidence = None
+        # Pass 1: exact normalized match
+        for eg in espn_golfers:
+            if eg['espn_id'] in used_espn_ids:
+                continue
+            if _normalize_name(eg['name']) == site_norm:
+                found, confidence = eg, 'high'
+                break
+        # Pass 2: last-name + first-initial match
+        if not found:
+            for eg in espn_golfers:
+                if eg['espn_id'] in used_espn_ids:
+                    continue
+                espn_parts = _normalize_name(eg['name']).split()
+                espn_last = espn_parts[-1] if espn_parts else ''
+                espn_first_init = espn_parts[0][0] if espn_parts and espn_parts[0] else ''
+                if site_last == espn_last and len(site_last) > 3 and site_first_init == espn_first_init:
+                    found, confidence = eg, 'medium'
+                    break
+        if found:
+            matched.append({'site_name': sp['name'], 'espn_id': found['espn_id'],
+                            'espn_name': found['name'], 'price': sp.get('price'), 'confidence': confidence})
+            used_espn_ids.add(found['espn_id'])
+        else:
+            unmatched_site.append({'name': sp['name'], 'price': sp.get('price')})
+    unmatched_espn = [{'espn_id': eg['espn_id'], 'name': eg['name']}
+                      for eg in espn_golfers if eg['espn_id'] not in used_espn_ids]
+    return {'matched': matched, 'unmatched_site': unmatched_site,
+            'unmatched_espn': unmatched_espn, 'espn_total': len(espn_golfers)}
+
+@api_router.post("/admin/espn-sync/{slot}/confirm")
+async def admin_espn_sync_confirm(slot: int, user_id: str = Query(...), body: dict = {}):
+    """Confirm ESPN sync — writes espn_ids, adds new players, removes unmatched."""
+    await check_admin(user_id)
+    t = await db.tournaments.find_one({"slot": slot}, {"_id": 0})
+    if not t:
+        raise HTTPException(status_code=404, detail="Tournament not found")
+    matched = body.get("matched", [])        # [{site_name, espn_id, espn_name}]
+    add_from_espn = body.get("add_from_espn", [])  # [{espn_id, espn_name, price}]
+    remove_from_site = set(body.get("remove_from_site", []))
+    link_map = {m['site_name']: m for m in matched}
+    updated = []
+    for g in t.get("golfers", []):
+        if g.get('name') in remove_from_site:
+            continue
+        link = link_map.get(g.get('name'))
+        if link:
+            g = {**g, 'espn_id': link['espn_id'], 'name': link['espn_name']}
+        updated.append(g)
+    for add in add_from_espn:
+        updated.append({'espn_id': add['espn_id'], 'name': add['espn_name'], 'short_name': '',
+                        'world_ranking': len(updated) + 1, 'odds': None, 'price': add.get('price', 0)})
+    affected_teams = []
+    if remove_from_site and t.get("id"):
+        teams = await db.teams.find({"tournament_id": t["id"]}, {"_id": 0}).to_list(500)
+        for team in teams:
+            removed = [g['name'] for g in team.get('golfers', []) if g.get('name') in remove_from_site]
+            if removed:
+                affected_teams.append({'user_name': team.get('user_name', ''),
+                                       'team_number': team.get('team_number', ''), 'removed_golfers': removed})
+    await db.tournaments.update_one({"slot": slot}, {"$set": {"golfers": updated}})
+    return {"success": True, "golfers_count": len(updated), "affected_teams": affected_teams}
 
 @api_router.delete("/admin/tournaments/{slot}")
 async def admin_reset_tournament(slot: int, user_id: str = Query(...)):
