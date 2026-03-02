@@ -111,7 +111,7 @@ function FeaturedBanner({ t, navigate }) {
       <div className="relative z-10 p-6 md:p-10 flex flex-col" style={{ minHeight: '420px' }}>
         {/* Top: label + badge */}
         <div className="flex items-center gap-3">
-          <span className="text-[10px] font-bold tracking-[0.2em] text-emerald-300 uppercase">
+          <span className="text-[10px] font-bold tracking-[0.2em] text-yellow-300 uppercase">
             Featured Tournament
           </span>
           <Badge className={badge.cls + ' text-xs font-bold'}>{badge.text}</Badge>
@@ -122,16 +122,16 @@ function FeaturedBanner({ t, navigate }) {
           <h2 className="font-heading font-extrabold text-4xl md:text-5xl text-white mb-2 leading-tight">
             {t.name}
           </h2>
-          <div className="flex items-center gap-1.5 text-emerald-300 mb-5">
+          <div className="flex items-center gap-1.5 text-yellow-300 mb-5">
             <MapPin className="w-4 h-4 flex-shrink-0" />
             <span className="text-sm font-medium">{venue.course}</span>
-            <span className="text-emerald-500">·</span>
-            <span className="text-sm text-emerald-400">{venue.location}</span>
+            <span className="text-yellow-400">·</span>
+            <span className="text-sm text-yellow-300">{venue.location}</span>
           </div>
 
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-white/80 text-base md:text-lg">
-              <Calendar className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+              <Calendar className="w-5 h-5 text-yellow-300 flex-shrink-0" />
               <span>{formatDate(t.start_date)} – {formatDate(t.end_date)}</span>
             </div>
             <div className="flex items-center gap-2 text-base md:text-lg flex-wrap">
