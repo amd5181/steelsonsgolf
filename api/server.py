@@ -895,7 +895,7 @@ async def get_leaderboard(tournament_id: str):
     }
 
 @api_router.post("/scores/refresh/{tournament_id}")
-async def manual_refresh(tournament_id: str, user_id: str = Query(...)):
+async def manual_refresh(tournament_id: str, user_id: Optional[str] = Query(None)):
     t = await db.tournaments.find_one({"id": tournament_id}, {"_id": 0})
     if not t: raise HTTPException(status_code=404, detail="Tournament not found")
     if not t.get("espn_event_id"): raise HTTPException(status_code=400, detail="No ESPN event mapped")

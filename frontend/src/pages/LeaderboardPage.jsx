@@ -128,10 +128,13 @@ export default function LeaderboardPage() {
   }, [data, selectedTid, tournaments, fetchLeaderboard]);
 
   const handleRefresh = async () => {
-    if (!selectedTid || !user) return;
+    if (!selectedTid) return;
     setRefreshing(true);
     try {
-      await axios.post(`${API}/scores/refresh/${selectedTid}?user_id=${user.id}`);
+      const url = user
+        ? `${API}/scores/refresh/${selectedTid}?user_id=${user.id}`
+        : `${API}/scores/refresh/${selectedTid}`;
+      await axios.post(url);
       await fetchLeaderboard();
     } catch (e) { console.error('Refresh failed:', e); }
     setRefreshing(false);
