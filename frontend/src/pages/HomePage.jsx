@@ -56,12 +56,7 @@ function getActiveSlot(allSlots) {
   const withDeadlines = allSlots.filter(t => t.deadline);
   if (withDeadlines.length === 0) return 1;
   const now = new Date();
-  const upcoming = withDeadlines.filter(t => new Date(t.deadline) > now);
-  if (upcoming.length > 0) {
-    upcoming.sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
-    return upcoming[0].slot;
-  }
-  withDeadlines.sort((a, b) => new Date(b.deadline) - new Date(a.deadline));
+  withDeadlines.sort((a, b) => Math.abs(new Date(a.deadline) - now) - Math.abs(new Date(b.deadline) - now));
   return withDeadlines[0].slot;
 }
 
