@@ -138,7 +138,7 @@ function FeaturedBanner({ t, navigate }) {
           <div className="flex flex-col">
             <span
               className="font-extrabold leading-none"
-              style={{ fontSize: '2rem', color: LIME, fontVariantNumeric: 'tabular-nums' }}
+              style={{ fontSize: '1.6rem', color: LIME, fontVariantNumeric: 'tabular-nums' }}
             >
               {t.team_count}
             </span>
@@ -148,7 +148,7 @@ function FeaturedBanner({ t, navigate }) {
           <div className="flex flex-col">
             <span
               className="font-extrabold leading-none"
-              style={{ fontSize: '2rem', color: '#ffffff', fontVariantNumeric: 'tabular-nums' }}
+              style={{ fontSize: '1.6rem', color: '#ffffff', fontVariantNumeric: 'tabular-nums' }}
             >
               {t.golfer_count ?? '—'}
             </span>
@@ -157,7 +157,7 @@ function FeaturedBanner({ t, navigate }) {
         </div>
 
         {/* Divider — matches width of stats row */}
-        <div className="mb-5" style={{ maxWidth: '340px', borderTop: '1px solid rgba(255,255,255,0.18)' }} />
+        <div className="mb-5" style={{ maxWidth: '220px', borderTop: '1px solid rgba(255,255,255,0.18)' }} />
 
         {/* ── Dates + Deadline (no background band) ── */}
         <div className="flex flex-col sm:flex-row gap-4 sm:gap-8 mb-5">
@@ -185,9 +185,9 @@ function FeaturedBanner({ t, navigate }) {
         {t.id && t.has_prices && (
           <div>
             <button
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all duration-200 hover:scale-105 hover:bg-white hover:text-[#1B4332] active:scale-95"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg font-bold text-xs transition-all duration-200 hover:scale-105 hover:bg-white hover:text-[#1B4332] active:scale-95"
               style={{
-                background: '#D4B83A',
+                background: '#D4FF3A',
                 color: '#0a1a00',
                 letterSpacing: '0.02em',
                 boxShadow: `0 0 20px ${LIME}44`,
