@@ -8,9 +8,136 @@ import { Badge } from '../components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
-import { Search, Download, DollarSign, Trash2, Loader2, Users, CheckCircle, ClipboardPaste, FileSpreadsheet, Calendar, Eye, Pencil, X, Mail, Upload, Link2, AlertTriangle, Plus } from 'lucide-react';
+import { Search, Download, DollarSign, Trash2, Loader2, Users, CheckCircle, ClipboardPaste, FileSpreadsheet, Calendar, Eye, Pencil, X, Mail, Upload, Link2, AlertTriangle, Plus, BarChart2, Zap } from 'lucide-react';
 
 const fmt = (n) => '$' + (n || 0).toLocaleString();
+
+function StatsModal({ open, tournament, teams, onClose }) {
+  if (!open || !teams.length) return null;
+
+  const totalTeams = teams.length;
+
+  // Player ownership
+  const ownershipMap = {};
+  teams.forEach(team => team.golfers.forEach(g => {
+    ownershipMap[g.name] = (ownershipMap[g.name] || 0) + 1;
+  }));
+  const ownership = Object.entries(ownershipMap)
+    .map(([name, count]) => ({ name, pct: Math.round((count / totalTeams) * 100) }))
+    .sort((a, b) => b.pct - a.pct);
+
+  // Budget extremes
+  const withCosts = teams.map(t => ({
+    ...t,
+    total: t.total_cost || t.golfers.reduce((s, g) => s + (g.price || 0), 0),
+  })).sort((a, b) => a.total - b.total);
+  const cheapest = withCosts[0];
+  const priciest = withCosts[withCosts.length - 1];
+  const avgCost = Math.round(withCosts.reduce((s, t) => s + t.total, 0) / totalTeams);
+
+  const contrarian = ownership.filter(p => p.pct > 0 && p.pct <= 15);
+
+  return (
+    <Dialog open={open} onOpenChange={o => { if (!o) onClose(); }}>
+      <DialogContent
+        className="sm:max-w-md p-0 overflow-hidden flex flex-col gap-0 top-[3%] translate-y-0 sm:top-[50%] sm:translate-y-[-50%] [&>button:last-child]:text-white/90 [&>button:last-child]:opacity-90 [&>button:last-child]:rounded-full [&>button:last-child]:bg-black/25 [&>button:last-child]:p-1"
+        style={{ maxHeight: 'calc(100dvh - 2rem)' }}
+      >
+        {/* Header */}
+        <div className="flex-shrink-0 px-6 py-5" style={{ background: 'linear-gradient(135deg, #0a2a14 0%, #1B4332 55%, #2D6A4F 100%)' }}>
+          <p className="text-[10px] font-bold tracking-[0.22em] uppercase mb-1 text-white/50">Field Breakdown</p>
+          <h2 className="font-heading font-extrabold text-2xl uppercase leading-tight text-white">{tournament?.name}</h2>
+        </div>
+
+        <div className="overflow-y-auto flex-1 px-5 py-5 space-y-5 bg-white">
+
+          {/* Summary */}
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { value: totalTeams, label: 'Teams' },
+              { value: ownership.length, label: 'Unique Picks' },
+              { value: fmt(avgCost), label: 'Avg Salary', small: true },
+            ].map(({ value, label, small }) => (
+              <div key={label} className="bg-slate-50 rounded-xl p-3 text-center">
+                <div className={`font-numbers font-extrabold text-[#1B4332] leading-none ${small ? 'text-base mt-1' : 'text-2xl'}`}>{value}</div>
+                <div className="text-[9px] text-slate-400 uppercase tracking-wider mt-1">{label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Ownership bars */}
+          <section>
+            <div className="flex items-center gap-2 mb-3">
+              <Users className="w-3.5 h-3.5 text-[#2D6A4F]" />
+              <span className="text-[10px] font-bold tracking-[0.18em] text-slate-400 uppercase">Most Selected</span>
+            </div>
+            <div className="space-y-2.5">
+              {ownership.slice(0, 8).map((p, i) => (
+                <div key={i} className="flex items-center gap-2.5">
+                  <span className="text-xs text-slate-700 truncate flex-shrink-0" style={{ width: '9rem' }}>{p.name}</span>
+                  <div className="flex-1 bg-slate-100 rounded-full h-2 overflow-hidden">
+                    <div className="h-full rounded-full bg-[#1B4332]" style={{ width: `${p.pct}%` }} />
+                  </div>
+                  <span className="text-xs font-bold font-numbers text-[#1B4332] w-9 text-right flex-shrink-0">{p.pct}%</span>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Contrarian picks */}
+          {contrarian.length > 0 && (
+            <section>
+              <div className="flex items-center gap-2 mb-2">
+                <Zap className="w-3.5 h-3.5 text-amber-500" />
+                <span className="text-[10px] font-bold tracking-[0.18em] text-slate-400 uppercase">Flying Under the Radar</span>
+                <span className="text-[9px] text-slate-300 ml-0.5">≤15%</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {contrarian.slice(0, 8).map((p, i) => (
+                  <span key={i} className="px-2 py-1 bg-amber-50 border border-amber-100 rounded-lg text-xs text-amber-800">
+                    {p.name} <span className="font-bold">{p.pct}%</span>
+                  </span>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Budget extremes */}
+          <section>
+            <div className="flex items-center gap-2 mb-3">
+              <DollarSign className="w-3.5 h-3.5 text-emerald-500" />
+              <span className="text-[10px] font-bold tracking-[0.18em] text-slate-400 uppercase">Budget Extremes</span>
+            </div>
+            <div className="space-y-3">
+              {[
+                { label: 'Thinnest Wallet', icon: '💸', team: cheapest },
+                { label: 'Deepest Pockets', icon: '🤑', team: priciest },
+              ].map(({ label, icon, team }) => (
+                <div key={label} className="bg-slate-50 rounded-xl p-3">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{icon} {label}</span>
+                    <span className="font-numbers font-bold text-sm text-[#1B4332]">{fmt(team.total)}</span>
+                  </div>
+                  <p className="text-xs font-semibold text-[#0F172A] mb-2">{team.user_name} #{team.team_number}</p>
+                  <div className="space-y-1">
+                    {team.golfers.map((g, i) => (
+                      <div key={i} className="flex items-center justify-between text-[11px]">
+                        <span className="text-slate-600">{g.name}</span>
+                        <span className="font-numbers text-slate-400">{fmt(g.price)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <div className="h-1" />
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 function toEasternInput(isoStr) {
   if (!isoStr) return '';
@@ -44,6 +171,9 @@ export default function AdminPage() {
   const [teamsDialog, setTeamsDialog] = useState({ open: false, tournament: null, teams: [] });
   const [editingTeam, setEditingTeam] = useState(null);
   const [editGolfers, setEditGolfers] = useState([]);
+
+  // Stats dialog
+  const [statsDialog, setStatsDialog] = useState({ open: false, tournament: null, teams: [] });
 
   // Upload players dialog
   const [uploadDialog, setUploadDialog] = useState({ open: false, slot: null });
@@ -232,6 +362,16 @@ export default function AdminPage() {
     finally { setActionLoading(p => ({ ...p, [`teams_${tournament.slot}`]: false })); }
   };
 
+  const viewStats = async (tournament) => {
+    if (!tournament.id) { toast.error('Tournament not set up yet'); return; }
+    setActionLoading(p => ({ ...p, [`stats_${tournament.slot}`]: true }));
+    try {
+      const r = await axios.get(`${API}/admin/teams/${tournament.id}?user_id=${user.id}`);
+      setStatsDialog({ open: true, tournament: r.data.tournament, teams: r.data.teams });
+    } catch (e) { toast.error(e.response?.data?.detail || 'Failed to load stats'); }
+    finally { setActionLoading(p => ({ ...p, [`stats_${tournament.slot}`]: false })); }
+  };
+
   const startEditTeam = (team) => {
     setEditingTeam(team);
     setEditGolfers([...team.golfers]);
@@ -349,11 +489,19 @@ export default function AdminPage() {
               </div>
               <div className="flex items-center gap-2">
                 {t.id && (
-                  <Button size="sm" variant="ghost" onClick={() => viewTeams(t)}
-                    disabled={actionLoading[`teams_${t.slot}`]}
-                    className="h-7 px-2 text-white/80 hover:text-white hover:bg-white/10" data-testid={`view-teams-${t.slot}`}>
-                    {actionLoading[`teams_${t.slot}`] ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><Eye className="w-3.5 h-3.5 mr-1" />Teams</>}
-                  </Button>
+                  <>
+                    <Button size="sm" variant="ghost" onClick={() => viewTeams(t)}
+                      disabled={actionLoading[`teams_${t.slot}`]}
+                      className="h-7 px-2 text-white/80 hover:text-white hover:bg-white/10" data-testid={`view-teams-${t.slot}`}>
+                      {actionLoading[`teams_${t.slot}`] ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><Eye className="w-3.5 h-3.5 mr-1" />Teams</>}
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => viewStats(t)}
+                      disabled={actionLoading[`stats_${t.slot}`]}
+                      title="Field stats"
+                      className="h-7 w-7 p-0 text-white/80 hover:text-white hover:bg-white/10" data-testid={`view-stats-${t.slot}`}>
+                      {actionLoading[`stats_${t.slot}`] ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <BarChart2 className="w-3.5 h-3.5" />}
+                    </Button>
+                  </>
                 )}
                 <button onClick={() => resetTournament(t.slot)}
                   disabled={actionLoading[`reset_${t.slot}`]}
@@ -848,6 +996,14 @@ export default function AdminPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Field Stats Modal */}
+      <StatsModal
+        open={statsDialog.open}
+        tournament={statsDialog.tournament}
+        teams={statsDialog.teams}
+        onClose={() => setStatsDialog({ open: false, tournament: null, teams: [] })}
+      />
     </div>
   );
 }
