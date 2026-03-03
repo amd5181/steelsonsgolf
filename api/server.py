@@ -15,7 +15,7 @@ import io
 import csv
 import re
 import httpx
-import google.generativeai as genai
+from google import genai as google_genai
 from supabase_mongo_compat import SupabaseMongoCompat
 
 ROOT_DIR = Path(__file__).parent
@@ -1092,9 +1092,6 @@ class TeamAnalysisRequest(BaseModel):
 
 @api_router.post("/analyze-team")
 async def analyze_team(request: TeamAnalysisRequest):
-    genai.configure(api_key=GEMINI_API_KEY)
-    model = genai.GenerativeModel('gemini-1.5-flash')
-
     golfer_lines = "\n".join([
         f"  • {g['name']}  |  World Rank: #{g.get('world_ranking', 'N/A')}  |  Salary: ${g.get('price', 0):,}"
         for g in request.golfers
@@ -1134,7 +1131,12 @@ Classify this team (high-ceiling aggressive / safe floor-first / balanced). What
 Be direct, data-driven, and brutally honest. Use real PGA Tour statistics and historical context."""
 
     try:
-        response = await asyncio.to_thread(model.generate_content, prompt)
+        client = google_genai.Client(api_key=GEMINI_API_KEY)
+        response = await asyncio.to_thread(
+            client.models.generate_content,
+            model="gemini-2.5-flash",
+            contents=prompt,
+        )
         return {"analysis": response.text}
     except Exception as e:
         logger.error(f"Gemini analysis error: {e}")
