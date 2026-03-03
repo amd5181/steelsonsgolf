@@ -162,15 +162,14 @@ code {
     animation: pulse-green 2s ease-in-out infinite;
 }
 
-/* Save button text pulse */
-@keyframes text-size-pulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.18); font-weight: 800; }
+/* Save button soft glow */
+@keyframes save-glow {
+    0%, 100% { box-shadow: 0 0 0px rgba(250, 204, 21, 0); }
+    50% { box-shadow: 0 0 14px 4px rgba(250, 204, 21, 0.45); }
 }
 
-.animate-text-size-pulse {
-    display: inline-block;
-    animation: text-size-pulse 1s ease-in-out infinite;
+.animate-save-glow {
+    animation: save-glow 2.8s ease-in-out infinite;
 }
 
 /* Budget bar transition */

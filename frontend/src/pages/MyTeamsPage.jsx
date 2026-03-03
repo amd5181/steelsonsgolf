@@ -321,12 +321,12 @@ export default function MyTeamsPage() {
                       saving
                         ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
                         : hasPendingChanges
-                        ? 'bg-yellow-400 text-yellow-900 shadow-md'
+                        ? 'bg-yellow-400 text-yellow-900 animate-save-glow'
                         : 'bg-[#6b9e85] text-white/80 cursor-default'
                     }`}
                   >
                     {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                    <span className={hasPendingChanges && !saving ? 'animate-text-size-pulse' : ''}>Save</span>
+                    <span>Save</span>
                   </button>
                 )}
               </div>
