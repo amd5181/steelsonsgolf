@@ -29,24 +29,24 @@ export default function Layout() {
     <TooltipProvider delayDuration={200}>
       <div className="min-h-dvh bg-background pt-16">
 
-        <header className="fixed top-0 left-0 right-0 z-50 glass shadow-sm h-16 flex items-center px-3 md:px-6" data-testid="top-nav">
+        <header className="fixed top-0 left-0 right-0 z-50 glass shadow-sm h-16 flex items-center px-3 min-[860px]:px-6" data-testid="top-nav">
 
           {/* Logo — always navigates home */}
           <div className="flex items-center gap-2 cursor-pointer flex-shrink-0" onClick={() => navigate('/home')}>
             <img
               src="https://res.cloudinary.com/dsvpfi9te/image/upload/v1771700941/ChatGPT_Image_Feb_21_2026_02_07_41_PM_kzc10a.png"
               alt="Steel Sons Golf"
-              className="h-8 w-8 md:h-10 md:w-10 object-contain"
+              className="h-8 w-8 min-[860px]:h-10 min-[860px]:w-10 object-contain"
             />
-            {/* Hide tagline on mobile — logo is enough */}
-            <div className="hidden md:flex flex-col leading-none">
+            {/* Hide tagline below 860px — logo is enough */}
+            <div className="hidden min-[860px]:flex flex-col leading-none">
               <span className="text-[10px] font-bold text-[#1B4332] tracking-wider">BLAST FURNACE</span>
               <span className="text-[10px] font-bold text-[#1B4332] tracking-wider">OF CHAMPIONS</span>
             </div>
           </div>
 
-          {/* ── Desktop nav (md+): icon + label, horizontal ── */}
-          <nav className="hidden md:flex items-center gap-0.5 ml-auto">
+          {/* ── Desktop nav (860px+): icon + label, horizontal ── */}
+          <nav className="hidden min-[860px]:flex items-center gap-0.5 ml-auto">
             {allItems.map(item => {
               const active = location.pathname === item.path;
               return (
@@ -91,8 +91,8 @@ export default function Layout() {
             )}
           </nav>
 
-          {/* ── Mobile nav: icon + tiny label, no Home (logo = home) ── */}
-          <nav className="flex md:hidden items-center ml-auto">
+          {/* ── Mobile nav (<860px): icon + tiny label, no Home (logo = home) ── */}
+          <nav className="flex min-[860px]:hidden items-center ml-auto">
             {allItems.filter(item => item.path !== '/home').map(item => {
               const active = location.pathname === item.path;
               return (
