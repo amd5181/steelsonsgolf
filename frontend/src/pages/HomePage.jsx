@@ -81,10 +81,9 @@ function FeaturedBanner({ t, navigate }) {
 
   return (
     <div
-      className="relative rounded-2xl overflow-hidden cursor-pointer mb-5"
+      className="relative rounded-2xl overflow-hidden mb-5"
       style={{ minHeight: '420px' }}
       data-testid={`tournament-card-${t.slot}`}
-      onClick={() => t.id ? navigate(destination) : null}
     >
       {/* Background media */}
       <div className="absolute inset-0">
@@ -185,6 +184,7 @@ function FeaturedBanner({ t, navigate }) {
         {t.id && t.has_prices && (
           <div>
             <button
+              onClick={() => navigate(destination)}
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg font-bold text-xs transition-all duration-200 hover:scale-105 hover:bg-white hover:text-[#1B4332] active:scale-95"
               style={{
                 background: '#D4FF3A',
@@ -202,15 +202,14 @@ function FeaturedBanner({ t, navigate }) {
   );
 }
 
-function SmallCard({ t, navigate }) {
+function SmallCard({ t }) {
   const badge = getStatusBadge(t.status, t.deadline, t.end_date);
   const venue = SLOT_VENUES[t.slot];
 
   return (
     <div
-      className="bg-white rounded-xl border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.06)] hover:shadow-[0_8px_24px_rgba(27,67,50,0.12)] transition-all duration-300 overflow-hidden group cursor-pointer"
+      className="bg-white rounded-xl border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition-all duration-300 overflow-hidden group"
       data-testid={`tournament-card-${t.slot}`}
-      onClick={() => t.id ? navigate('/teams') : null}
     >
       <div className="h-1.5 bg-gradient-to-r from-[#1B4332] to-[#2D6A4F]" />
       <div className="p-5">
@@ -335,7 +334,7 @@ export default function HomePage() {
 
       {/* 3 small cards + Recent Winners in a 2×2 grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 stagger">
-        {others.map(t => <SmallCard key={t.slot} t={t} navigate={navigate} />)}
+        {others.map(t => <SmallCard key={t.slot} t={t} />)}
         <RecentWinnersCard recentTournament={recentTournament} />
       </div>
     </div>

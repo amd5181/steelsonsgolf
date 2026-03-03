@@ -162,6 +162,17 @@ code {
     animation: pulse-green 2s ease-in-out infinite;
 }
 
+/* Save button text pulse */
+@keyframes text-size-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.18); font-weight: 800; }
+}
+
+.animate-text-size-pulse {
+    display: inline-block;
+    animation: text-size-pulse 1s ease-in-out infinite;
+}
+
 /* Budget bar transition */
 .budget-bar {
     transition: width 0.3s ease-out;
