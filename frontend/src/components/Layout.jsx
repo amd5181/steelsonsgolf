@@ -2,7 +2,7 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Home, Users, BarChart2, BookOpen, Settings, UserCog, Trophy, LogIn } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../components/ui/tooltip';
 import { useAuth } from '../App';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ProfileModal from './ProfileModal';
 import AuthModal from './AuthModal';
 
@@ -20,13 +20,20 @@ export default function Layout() {
   const location = useLocation();
   const [profileOpen, setProfileOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
+  const [tooltipKey, setTooltipKey] = useState(0);
+
+  useEffect(() => {
+    const onVisible = () => { if (!document.hidden) setTooltipKey(k => k + 1); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, []);
 
   const allItems = user?.is_admin
     ? [...NAV_ITEMS, { path: '/admin', icon: Settings, label: 'Admin' }]
     : NAV_ITEMS;
 
   return (
-    <TooltipProvider delayDuration={200}>
+    <TooltipProvider key={tooltipKey} delayDuration={200}>
       <div className="min-h-dvh bg-background pt-16">
 
         <header className="fixed top-0 left-0 right-0 z-50 glass shadow-sm h-16 flex items-center px-3 md:px-6" data-testid="top-nav">
