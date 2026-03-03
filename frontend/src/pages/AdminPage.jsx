@@ -313,67 +313,85 @@ export default function AdminPage() {
 
   return (
     <div className="p-4 md:p-8 max-w-5xl mx-auto animate-fade-in-up" data-testid="admin-page">
-      <div className="mb-6">
-        <h1 className="font-heading font-extrabold text-3xl sm:text-4xl text-[#0F172A] tracking-tight">ADMIN</h1>
-      </div>
 
-      {/* ESPN Event Search */}
-      <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 mb-6" data-testid="espn-search-panel">
-        <h3 className="font-heading font-bold text-sm text-[#0F172A] uppercase tracking-wider mb-3">
-          <Search className="w-4 h-4 inline mr-1.5" />Search ESPN Events
-        </h3>
-        <div className="flex gap-2 flex-wrap">
+      {/* Header + ESPN search inline */}
+      <div className="flex flex-wrap items-center gap-3 mb-5">
+        <h1 className="font-heading font-extrabold text-3xl sm:text-4xl text-[#0F172A] tracking-tight mr-2">ADMIN</h1>
+        <div className="flex items-center gap-2 ml-auto" data-testid="espn-search-panel">
           <Input data-testid="espn-search-year" value={searchYear} onChange={e => setSearchYear(e.target.value)}
-            placeholder="Year" className="w-24 h-9" />
+            placeholder="Year" className="w-20 h-8 text-sm" />
           <Button onClick={searchEspn} disabled={actionLoading.search} data-testid="espn-search-btn"
-            className="h-9 bg-[#1B4332] text-white hover:bg-[#2D6A4F]">
-            {actionLoading.search ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Search className="w-4 h-4 mr-1" />Search</>}
+            className="h-8 px-3 bg-[#1B4332] text-white hover:bg-[#2D6A4F] text-xs">
+            {actionLoading.search ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><Search className="w-3.5 h-3.5 mr-1" />Search ESPN</>}
           </Button>
-          {espnEvents.length > 0 && <Badge variant="outline" className="text-xs">{espnEvents.length} events found</Badge>}
+          {espnEvents.length > 0 && <Badge variant="outline" className="text-xs">{espnEvents.length} events</Badge>}
         </div>
       </div>
 
-      {/* Tournament Slots */}
-      <div className="space-y-4 stagger">
+      {/* Tournament Slots — compact grid on large screens */}
+      <div className="space-y-3">
         {allSlots.map(t => (
-          <div key={t.slot} className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden animate-fade-in-up"
+          <div key={t.slot} className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden"
             data-testid={`admin-slot-${t.slot}`}>
-            <div className="bg-gradient-to-r from-[#1B4332] to-[#2D6A4F] px-4 py-3 flex items-center justify-between">
+
+            {/* ── Header ── */}
+            <div className="bg-gradient-to-r from-[#1B4332] to-[#2D6A4F] px-4 py-2.5 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="text-white font-heading font-bold text-sm uppercase tracking-wider">Major {t.slot}</span>
-                {t.status === 'prices_set' && <Badge className="bg-[#CCFF00] text-[#0F172A] text-[10px]"><CheckCircle className="w-3 h-3 mr-0.5" />Ready</Badge>}
-                {t.status === 'golfers_loaded' && <Badge className="bg-blue-400 text-white text-[10px]">Golfers Loaded</Badge>}
-                {needsEspnSync(t) && <Badge className="bg-amber-400 text-amber-900 text-[10px]"><AlertTriangle className="w-3 h-3 mr-0.5" />Needs ESPN Sync</Badge>}
+                {t.name && <span className="text-white/50 text-xs hidden sm:block truncate max-w-[200px]">{t.name}</span>}
+                {t.status === 'prices_set' && <Badge className="bg-[#CCFF00] text-[#0F172A] text-[10px] px-1.5"><CheckCircle className="w-3 h-3 mr-0.5 inline" />Ready</Badge>}
+                {t.status === 'golfers_loaded' && <Badge className="bg-blue-400 text-white text-[10px] px-1.5">Field Set</Badge>}
+                {needsEspnSync(t) && <Badge className="bg-amber-400 text-amber-900 text-[10px] px-1.5"><AlertTriangle className="w-3 h-3 mr-0.5 inline" />Sync</Badge>}
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 {t.id && (
                   <Button size="sm" variant="ghost" onClick={() => viewTeams(t)}
                     disabled={actionLoading[`teams_${t.slot}`]}
-                    className="h-7 px-2 text-white/80 hover:text-white hover:bg-white/10" data-testid={`view-teams-${t.slot}`}>
+                    className="h-7 px-2 text-white/80 hover:text-white hover:bg-white/10 text-xs" data-testid={`view-teams-${t.slot}`}>
                     {actionLoading[`teams_${t.slot}`] ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><Eye className="w-3.5 h-3.5 mr-1" />Teams</>}
                   </Button>
                 )}
-                <button onClick={() => resetTournament(t.slot)}
-                  disabled={actionLoading[`reset_${t.slot}`]}
-                  className="text-white/50 hover:text-white transition-colors disabled:opacity-30" data-testid={`reset-slot-${t.slot}`}>
-                  {actionLoading[`reset_${t.slot}`] ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                <button onClick={() => resetTournament(t.slot)} disabled={actionLoading[`reset_${t.slot}`]}
+                  className="text-white/40 hover:text-white transition-colors disabled:opacity-30 p-1" data-testid={`reset-slot-${t.slot}`}>
+                  {actionLoading[`reset_${t.slot}`] ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
                 </button>
               </div>
             </div>
-            <div className="p-4 space-y-3">
-              <div>
-                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">Tournament Name</label>
+
+            {/* ── Body ── */}
+            <div className="p-3 space-y-2">
+
+              {/* Row 1: Name + Deadline side by side */}
+              <div className="flex gap-2">
                 <Input data-testid={`slot-name-${t.slot}`} defaultValue={t.name}
                   onBlur={e => { if (e.target.value !== t.name) updateTournament(t.slot, { name: e.target.value }); }}
-                  placeholder="e.g., Masters 2026" className="h-9" />
+                  placeholder="Tournament name (e.g. Masters 2026)" className="h-8 flex-1 text-sm" />
+                <div className="flex-shrink-0">
+                  <Input type="datetime-local" data-testid={`deadline-${t.slot}`}
+                    defaultValue={toEasternInput(t.deadline)}
+                    onBlur={e => {
+                      const val = e.target.value;
+                      if (val) {
+                        const isoDate = easternInputToISO(val);
+                        if (isoDate !== t.deadline) { updateTournament(t.slot, { deadline: isoDate }); toast.success('Deadline updated'); }
+                      }
+                    }}
+                    className="h-8 text-xs w-48" />
+                  {t.deadline && (
+                    <p className="text-[10px] text-slate-400 mt-0.5 text-right">
+                      {new Date(t.deadline).toLocaleString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} ET
+                    </p>
+                  )}
+                </div>
               </div>
-              <div>
-                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">ESPN Event</label>
-                <div className="flex gap-2 flex-wrap">
+
+              {/* Row 2: ESPN selector + field action buttons */}
+              <div className="flex gap-1.5 items-center flex-wrap">
+                <div className="flex-1 min-w-[160px]">
                   {espnEvents.length > 0 ? (
                     <Select value={t.espn_event_id || ''} onValueChange={val => handleEventSelect(t.slot, val)}>
-                      <SelectTrigger className="h-9 flex-1 min-w-[200px]" data-testid={`espn-select-${t.slot}`}>
-                        <SelectValue placeholder="Select ESPN event..." />
+                      <SelectTrigger className="h-8 text-xs" data-testid={`espn-select-${t.slot}`}>
+                        <SelectValue placeholder="Select ESPN event…" />
                       </SelectTrigger>
                       <SelectContent>
                         {espnEvents.map(ev => (
@@ -386,109 +404,52 @@ export default function AdminPage() {
                   ) : (
                     <Input data-testid={`espn-id-${t.slot}`} defaultValue={t.espn_event_id || ''}
                       onBlur={e => updateTournament(t.slot, { espn_event_id: e.target.value })}
-                      placeholder="Search ESPN events above first" className="h-9 flex-1" />
+                      placeholder="ESPN event ID (search above first)" className="h-8 text-xs" />
                   )}
                 </div>
-                {/* Load Field row */}
-                <div className="flex gap-2 flex-wrap mt-2">
-                  <Button onClick={() => fetchGolfers(t.slot)} disabled={!t.espn_event_id || actionLoading[`golfers_${t.slot}`]}
-                    data-testid={`fetch-golfers-${t.slot}`}
-                    className="h-9 bg-[#2D6A4F] text-white hover:bg-[#1B4332]">
-                    {actionLoading[`golfers_${t.slot}`] ? <Loader2 className="w-4 h-4 animate-spin" /> :
-                      <><Download className="w-4 h-4 mr-1" />Fetch from ESPN</>}
+                <Button onClick={() => fetchGolfers(t.slot)} disabled={!t.espn_event_id || actionLoading[`golfers_${t.slot}`]}
+                  data-testid={`fetch-golfers-${t.slot}`} className="h-8 px-2.5 bg-[#2D6A4F] text-white hover:bg-[#1B4332] text-xs flex-shrink-0">
+                  {actionLoading[`golfers_${t.slot}`] ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><Download className="w-3.5 h-3.5 mr-1" />ESPN</>}
+                </Button>
+                <Button onClick={() => { setUploadDialog({ open: true, slot: t.slot }); setUploadText(''); }}
+                  variant="outline" data-testid={`upload-players-${t.slot}`} className="h-8 px-2.5 text-xs flex-shrink-0">
+                  <Upload className="w-3.5 h-3.5 mr-1" />Upload
+                </Button>
+                {needsEspnSync(t) && (
+                  <Button onClick={() => startSync(t.slot)} disabled={actionLoading[`sync_${t.slot}`]}
+                    data-testid={`sync-espn-${t.slot}`} className="h-8 px-2.5 bg-amber-500 text-white hover:bg-amber-600 text-xs flex-shrink-0">
+                    {actionLoading[`sync_${t.slot}`] ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><Link2 className="w-3.5 h-3.5 mr-1" />Sync ESPN</>}
                   </Button>
-                  <Button onClick={() => { setUploadDialog({ open: true, slot: t.slot }); setUploadText(''); }}
-                    variant="outline" data-testid={`upload-players-${t.slot}`} className="h-9">
-                    <Upload className="w-4 h-4 mr-1" />Upload Players
-                  </Button>
-                  {needsEspnSync(t) && (
-                    <Button onClick={() => startSync(t.slot)} disabled={actionLoading[`sync_${t.slot}`]}
-                      data-testid={`sync-espn-${t.slot}`}
-                      className="h-9 bg-amber-500 text-white hover:bg-amber-600">
-                      {actionLoading[`sync_${t.slot}`] ? <Loader2 className="w-4 h-4 animate-spin" /> :
-                        <><Link2 className="w-4 h-4 mr-1" />Sync to ESPN</>}
-                    </Button>
-                  )}
-                </div>
-              </div>
-              {/* Pricing */}
-              {t.golfers?.length > 0 && (
-                <div>
-                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">Pricing</label>
-                  <div className="flex gap-2 flex-wrap">
-                    <Button onClick={() => { setOddsDialog({ open: true, slot: t.slot }); setOddsText(''); }}
-                      disabled={!t.golfers?.length} data-testid={`paste-odds-${t.slot}`}
-                      className="h-9 bg-[#1B4332] text-white hover:bg-[#2D6A4F]">
-                      <ClipboardPaste className="w-4 h-4 mr-1" />Paste Odds
-                    </Button>
-                    <Button onClick={() => setDefaultPrices(t.slot)} variant="outline" disabled={!t.golfers?.length || actionLoading[`prices_${t.slot}`]}
-                      data-testid={`default-prices-${t.slot}`} className="h-9">
-                      {actionLoading[`prices_${t.slot}`] ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Auto-Price'}
-                    </Button>
-                    <Button onClick={() => {
-                      window.open(`${API}/admin/export-csv/${t.slot}?user_id=${user.id}`, '_blank');
-                    }} variant="outline" disabled={!t.golfers?.length}
-                      data-testid={`export-csv-${t.slot}`} className="h-9">
-                      <FileSpreadsheet className="w-4 h-4 mr-1" />CSV
-                    </Button>
-                  </div>
-                </div>
-              )}
-              {/* Entry Deadline */}
-              <div>
-                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">
-                  <Calendar className="w-3 h-3 inline mr-1" />Entry Deadline (ET)
-                </label>
-                <Input
-                  type="datetime-local"
-                  data-testid={`deadline-${t.slot}`}
-                  defaultValue={toEasternInput(t.deadline)}
-                  onBlur={e => {
-                    const val = e.target.value;
-                    if (val) {
-                      const isoDate = easternInputToISO(val);
-                      if (isoDate !== t.deadline) {
-                        updateTournament(t.slot, { deadline: isoDate });
-                        toast.success('Deadline updated');
-                      }
-                    }
-                  }}
-                  className="h-9 max-w-xs"
-                />
-                {t.deadline && (
-                  <p className="text-xs text-slate-400 mt-1">
-                    Current: {new Date(t.deadline).toLocaleString('en-US', {
-                      timeZone: 'America/New_York',
-                      month: 'short', day: 'numeric', year: 'numeric',
-                      hour: 'numeric', minute: '2-digit'
-                    })} ET
-                  </p>
                 )}
               </div>
+
+              {/* Row 3: Field status + pricing (only when golfers loaded) */}
               {t.golfers?.length > 0 && (
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Users className="w-4 h-4 text-slate-400" />
-                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{t.golfers.length} Golfers</span>
-                    {t.golfers[0]?.price && <Badge variant="outline" className="text-[10px]">Prices Set</Badge>}
+                <div className="flex items-center gap-2 flex-wrap pt-0.5">
+                  <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                    <Users className="w-3.5 h-3.5 text-slate-400" />
+                    <span className="font-medium">{t.golfers.length} golfers</span>
+                    {t.golfers[0]?.price
+                      ? <span className="inline-flex items-center gap-0.5 text-emerald-600 font-semibold"><CheckCircle className="w-3 h-3" />Prices set</span>
+                      : <span className="text-slate-400 italic">No prices</span>}
                     {needsEspnSync(t) && (
-                      <Badge variant="outline" className="text-[10px] border-amber-300 text-amber-600">
-                        {t.golfers.filter(g => !g.espn_id).length} without ESPN link
-                      </Badge>
+                      <span className="text-amber-600 font-medium">{t.golfers.filter(g => !g.espn_id).length} without ESPN</span>
                     )}
                   </div>
-                  <ScrollArea className="h-40">
-                    <div className="divide-y divide-slate-50">
-                      {t.golfers.slice(0, 50).map((g, i) => (
-                        <div key={i} className="flex items-center py-1.5 text-xs px-1">
-                          <span className="w-6 font-numbers font-bold text-slate-300">{i + 1}</span>
-                          <span className="flex-1 text-slate-700">{g.name}</span>
-                          {!g.espn_id && <span className="text-[10px] text-amber-400 mr-2">no ESPN</span>}
-                          {g.price && <span className="font-numbers font-bold text-[#2D6A4F]">{fmt(g.price)}</span>}
-                        </div>
-                      ))}
-                    </div>
-                  </ScrollArea>
+                  <div className="flex gap-1.5 ml-auto">
+                    <Button onClick={() => { setOddsDialog({ open: true, slot: t.slot }); setOddsText(''); }}
+                      data-testid={`paste-odds-${t.slot}`} className="h-7 px-2.5 bg-[#1B4332] text-white hover:bg-[#2D6A4F] text-xs">
+                      <ClipboardPaste className="w-3 h-3 mr-1" />Odds
+                    </Button>
+                    <Button onClick={() => setDefaultPrices(t.slot)} variant="outline"
+                      disabled={actionLoading[`prices_${t.slot}`]} data-testid={`default-prices-${t.slot}`} className="h-7 px-2.5 text-xs">
+                      {actionLoading[`prices_${t.slot}`] ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Auto-Price'}
+                    </Button>
+                    <Button onClick={() => window.open(`${API}/admin/export-csv/${t.slot}?user_id=${user.id}`, '_blank')}
+                      variant="outline" data-testid={`export-csv-${t.slot}`} className="h-7 px-2 text-xs">
+                      <FileSpreadsheet className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>
