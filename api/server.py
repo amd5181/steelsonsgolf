@@ -15,7 +15,6 @@ import io
 import csv
 import re
 import httpx
-from google import genai as google_genai
 from supabase_mongo_compat import SupabaseMongoCompat
 
 ROOT_DIR = Path(__file__).parent
@@ -31,7 +30,6 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 logger = logging.getLogger(__name__)
 
 ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "").lower().strip()
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyBfYHhT8mpG9yoNN1FDA4jUxKdNIgwIN2c")
 ESPN_BASE = "https://site.api.espn.com/apis/site/v2/sports/golf/pga"
 ODDS_API_BASE = "https://api.the-odds-api.com/v4"
 
@@ -1084,51 +1082,6 @@ HISTORY = [
 @api_router.get("/history")
 async def get_history():
     return HISTORY
-
-# ── AI Team Analysis ──
-class TeamAnalysisRequest(BaseModel):
-    golfers: List[Dict[str, Any]]
-    tournament_name: str
-
-@api_router.post("/analyze-team")
-async def analyze_team(request: TeamAnalysisRequest):
-    import json
-    from google.genai import types as genai_types
-
-    current_year = datetime.now().year
-    golfer_lines = "\n".join([
-        f"  {g['name']} (Rank #{g.get('world_ranking', 'N/A')})"
-        for g in request.golfers
-    ])
-
-    prompt = f"""You are a PGA Tour fantasy golf expert. It is {current_year}. Analyze this team for the {current_year} {request.tournament_name}, using the correct {current_year} host course and field.
-
-ROSTER:
-{golfer_lines}
-
-RULES: Missing the cut = 0 pts. Top finishes earn huge points. All 5 making the cut is critical. Picking the winner is exponential leverage.
-
-Reply ONLY with this JSON (no markdown, no extra text):
-{{"summary":"2 sentences max: team ceiling and biggest concern","players":[{{"name":"Name","risk":"low|medium|high"}},{{"name":"Name","risk":"low|medium|high"}},{{"name":"Name","risk":"low|medium|high"}},{{"name":"Name","risk":"low|medium|high"}},{{"name":"Name","risk":"low|medium|high"}}],"grade":"A|A-|B+|B|B-|C+|C|C-|D","grade_note":"One phrase"}}"""
-
-    try:
-        client = google_genai.Client(api_key=GEMINI_API_KEY)
-        response = await asyncio.to_thread(
-            client.models.generate_content,
-            model="gemini-2.5-flash",
-            contents=prompt,
-            config=genai_types.GenerateContentConfig(
-                thinking_config=genai_types.ThinkingConfig(thinking_budget=0)
-            ),
-        )
-        raw = response.text.strip()
-        if raw.startswith("```"):
-            raw = re.sub(r"^```[a-z]*\n?", "", raw)
-            raw = re.sub(r"\n?```$", "", raw.strip())
-        return json.loads(raw)
-    except Exception as e:
-        logger.error(f"Gemini analysis error: {e}")
-        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
 @api_router.get("/")
 async def root():
