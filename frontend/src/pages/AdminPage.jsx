@@ -26,16 +26,21 @@ function StatsModal({ open, tournament, teams, onClose }) {
     .map(([name, count]) => ({ name, pct: Math.round((count / totalTeams) * 100) }))
     .sort((a, b) => b.pct - a.pct);
 
-  // Budget extremes
+  // Budget
   const withCosts = teams.map(t => ({
     ...t,
     total: t.total_cost || t.golfers.reduce((s, g) => s + (g.price || 0), 0),
   })).sort((a, b) => a.total - b.total);
   const cheapest = withCosts[0];
-  const priciest = withCosts[withCosts.length - 1];
   const avgCost = Math.round(withCosts.reduce((s, t) => s + t.total, 0) / totalTeams);
 
   const contrarian = ownership.filter(p => p.pct > 0 && p.pct <= 15);
+
+  // Left on the board — most expensive players with 0 selections
+  const leftOnBoard = (tournament?.golfers || [])
+    .filter(g => g.price && !ownershipMap[g.name])
+    .sort((a, b) => (b.price || 0) - (a.price || 0))
+    .slice(0, 5);
 
   return (
     <Dialog open={open} onOpenChange={o => { if (!o) onClose(); }}>
@@ -102,35 +107,49 @@ function StatsModal({ open, tournament, teams, onClose }) {
             </section>
           )}
 
-          {/* Budget extremes */}
+          {/* Thinnest wallet */}
           <section>
             <div className="flex items-center gap-2 mb-3">
               <DollarSign className="w-3.5 h-3.5 text-emerald-500" />
-              <span className="text-[10px] font-bold tracking-[0.18em] text-slate-400 uppercase">Budget Extremes</span>
+              <span className="text-[10px] font-bold tracking-[0.18em] text-slate-400 uppercase">Thinnest Wallet</span>
             </div>
-            <div className="space-y-3">
-              {[
-                { label: 'Thinnest Wallet', icon: '💸', team: cheapest },
-                { label: 'Deepest Pockets', icon: '🤑', team: priciest },
-              ].map(({ label, icon, team }) => (
-                <div key={label} className="bg-slate-50 rounded-xl p-3">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{icon} {label}</span>
-                    <span className="font-numbers font-bold text-sm text-[#1B4332]">{fmt(team.total)}</span>
+            <div className="bg-slate-50 rounded-xl p-3">
+              <div className="flex items-center justify-between mb-1.5">
+                <p className="text-xs font-semibold text-[#0F172A]">💸 {cheapest.user_name} #{cheapest.team_number}</p>
+                <span className="font-numbers font-bold text-sm text-[#1B4332]">{fmt(cheapest.total)}</span>
+              </div>
+              <div className="space-y-1">
+                {cheapest.golfers.map((g, i) => (
+                  <div key={i} className="flex items-center justify-between text-[11px]">
+                    <span className="text-slate-600">{g.name}</span>
+                    <span className="font-numbers text-slate-400">{fmt(g.price)}</span>
                   </div>
-                  <p className="text-xs font-semibold text-[#0F172A] mb-2">{team.user_name} #{team.team_number}</p>
-                  <div className="space-y-1">
-                    {team.golfers.map((g, i) => (
-                      <div key={i} className="flex items-center justify-between text-[11px]">
-                        <span className="text-slate-600">{g.name}</span>
-                        <span className="font-numbers text-slate-400">{fmt(g.price)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </section>
+
+          {/* Left on the board */}
+          {leftOnBoard.length > 0 && (
+            <section>
+              <div className="flex items-center gap-2 mb-3">
+                <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
+                <span className="text-[10px] font-bold tracking-[0.18em] text-slate-400 uppercase">Left on the Board</span>
+                <span className="text-[9px] text-slate-300 ml-0.5">0% ownership</span>
+              </div>
+              <div className="space-y-1.5">
+                {leftOnBoard.map((g, i) => (
+                  <div key={i} className="flex items-center justify-between px-3 py-2 bg-rose-50 border border-rose-100 rounded-lg">
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-[10px] font-bold text-rose-300 w-4">{i + 1}</span>
+                      <span className="text-sm font-medium text-slate-700">{g.name}</span>
+                    </div>
+                    <span className="font-numbers font-bold text-sm text-rose-500">{fmt(g.price)}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
           <div className="h-1" />
         </div>
