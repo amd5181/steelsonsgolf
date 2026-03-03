@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { toast } from 'sonner';
 import axios from 'axios';
 import { API, useAuth } from '../App';
@@ -6,7 +6,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
 import { ScrollArea } from '../components/ui/scroll-area';
-import { Search, Minus, Trash2, Save, DollarSign, Loader2, AlertTriangle, Lock, LogIn } from 'lucide-react';
+import { Search, Minus, Trash2, Save, DollarSign, Loader2, AlertTriangle, Lock, LogIn, Sparkles, X, ChevronRight } from 'lucide-react';
 import AuthModal from '../components/AuthModal';
 import PaymentBanner from '../components/PaymentBanner';
 
@@ -40,6 +40,167 @@ function getDefaultTournamentSlot(tournaments) {
 
 const EMPTY_TEAM = [null, null, null, null, null];
 
+// Simple markdown renderer for the AI analysis
+function renderAnalysis(text) {
+  if (!text) return [];
+  const lines = text.split('\n');
+  return lines.map((line, i) => {
+    // Bold headers like **PLAYER BREAKDOWN**
+    if (/^\*\*(.+)\*\*$/.test(line.trim())) {
+      const header = line.trim().replace(/^\*\*|\*\*$/g, '');
+      return <div key={i} className="mt-5 mb-2 first:mt-0">
+        <span className="inline-flex items-center gap-1.5 text-[#1B4332] font-heading font-extrabold text-sm uppercase tracking-wider border-b-2 border-[#1B4332]/20 pb-1">
+          <ChevronRight className="w-3.5 h-3.5" />{header}
+        </span>
+      </div>;
+    }
+    // Bullet points starting with •
+    if (/^[•\-\*]\s/.test(line.trim())) {
+      const content = line.trim().replace(/^[•\-\*]\s/, '');
+      return <div key={i} className="flex gap-2 text-sm text-slate-700 leading-relaxed py-0.5">
+        <span className="text-[#2D6A4F] font-bold mt-0.5 flex-shrink-0">•</span>
+        <span dangerouslySetInnerHTML={{ __html: content.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>') }} />
+      </div>;
+    }
+    // Inline bold within regular text
+    if (line.trim()) {
+      return <p key={i} className="text-sm text-slate-700 leading-relaxed py-0.5"
+        dangerouslySetInnerHTML={{ __html: line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>') }} />;
+    }
+    return <div key={i} className="h-1.5" />;
+  });
+}
+
+// Golf ball loading animation
+function GolfBallLoader() {
+  return (
+    <div className="flex flex-col items-center justify-center py-12 gap-6">
+      <div className="relative">
+        {/* Outer pulsing rings */}
+        <div className="absolute inset-0 rounded-full bg-[#1B4332]/20 animate-ping" style={{ animationDuration: '1.5s' }} />
+        <div className="absolute inset-[-8px] rounded-full bg-[#1B4332]/10 animate-ping" style={{ animationDuration: '2s', animationDelay: '0.3s' }} />
+        {/* Golf ball */}
+        <div className="relative w-16 h-16 rounded-full bg-white shadow-xl border-2 border-slate-200 flex items-center justify-center animate-bounce" style={{ animationDuration: '1.2s' }}>
+          {/* Golf ball dimple pattern */}
+          <div className="absolute inset-0 rounded-full overflow-hidden opacity-20">
+            <div className="absolute top-3 left-3 w-2 h-2 rounded-full bg-slate-400" />
+            <div className="absolute top-3 right-4 w-1.5 h-1.5 rounded-full bg-slate-400" />
+            <div className="absolute top-6 left-5 w-1.5 h-1.5 rounded-full bg-slate-400" />
+            <div className="absolute bottom-4 left-4 w-2 h-2 rounded-full bg-slate-400" />
+            <div className="absolute bottom-3 right-3 w-1.5 h-1.5 rounded-full bg-slate-400" />
+          </div>
+          <span className="text-2xl">⛳</span>
+        </div>
+      </div>
+      <div className="text-center space-y-1">
+        <p className="text-[#1B4332] font-heading font-bold text-base">Analyzing Your Team</p>
+        <p className="text-slate-500 text-xs animate-pulse">Consulting PGA history, recent form &amp; course data...</p>
+      </div>
+      {/* Animated dots */}
+      <div className="flex gap-1.5">
+        {[0, 1, 2].map(i => (
+          <div key={i} className="w-2 h-2 rounded-full bg-[#1B4332]/40 animate-bounce"
+            style={{ animationDelay: `${i * 0.15}s`, animationDuration: '0.9s' }} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Analysis modal
+function AnalysisModal({ open, onClose, loading, analysis, error, tournamentName, team }) {
+  const contentRef = useRef(null);
+  const [revealed, setRevealed] = useState(false);
+
+  useEffect(() => {
+    if (!loading && analysis) {
+      // Brief delay so the transition feels intentional
+      const t = setTimeout(() => setRevealed(true), 100);
+      return () => clearTimeout(t);
+    } else {
+      setRevealed(false);
+    }
+  }, [loading, analysis]);
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+
+      {/* Modal card */}
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[88vh] flex flex-col overflow-hidden
+        animate-in fade-in zoom-in-95 duration-200">
+
+        {/* Header */}
+        <div className="bg-gradient-to-r from-[#1B4332] to-[#2D6A4F] px-5 py-4 flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center">
+              <Sparkles className="w-4 h-4 text-yellow-300" />
+            </div>
+            <div>
+              <p className="text-white font-heading font-extrabold text-sm uppercase tracking-wider">AI Team Analysis</p>
+              {tournamentName && <p className="text-white/60 text-xs">{tournamentName}</p>}
+            </div>
+          </div>
+          <button onClick={onClose}
+            className="text-white/60 hover:text-white transition-colors rounded-lg p-1 hover:bg-white/10">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Team pills */}
+        {team && team.length > 0 && (
+          <div className="px-5 py-2.5 bg-[#1B4332]/5 border-b border-[#1B4332]/10 flex flex-wrap gap-1.5 flex-shrink-0">
+            {team.map((g, i) => g && (
+              <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white border border-[#1B4332]/20 text-xs font-semibold text-[#1B4332] shadow-sm">
+                #{g.world_ranking || '?'} {g.name}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Content area */}
+        <div className="flex-1 overflow-y-auto" ref={contentRef}>
+          {loading && <GolfBallLoader />}
+
+          {!loading && error && (
+            <div className="p-6 text-center">
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-3">
+                <AlertTriangle className="w-6 h-6 text-red-500" />
+              </div>
+              <p className="text-slate-700 font-semibold">Analysis Failed</p>
+              <p className="text-slate-500 text-sm mt-1">{error}</p>
+              <button onClick={onClose} className="mt-4 px-4 py-2 rounded-lg bg-slate-100 text-slate-600 text-sm font-semibold hover:bg-slate-200 transition-colors">
+                Close
+              </button>
+            </div>
+          )}
+
+          {!loading && analysis && (
+            <div className={`px-5 py-4 transition-all duration-500 ${revealed ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
+              {renderAnalysis(analysis)}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        {!loading && analysis && (
+          <div className="px-5 py-3 border-t border-slate-100 bg-slate-50 flex items-center justify-between flex-shrink-0">
+            <p className="text-xs text-slate-400 italic">Powered by Google Gemini · For entertainment purposes</p>
+            <button onClick={onClose}
+              className="px-4 py-1.5 rounded-lg bg-[#1B4332] text-white text-xs font-bold hover:bg-[#2D6A4F] transition-colors">
+              Close
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function MyTeamsPage() {
   const { user } = useAuth();
   const [tournaments, setTournaments] = useState([]);
@@ -56,6 +217,12 @@ export default function MyTeamsPage() {
   const [activeTeam, setActiveTeam] = useState(1);
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState('login');
+
+  // AI analysis state
+  const [analysisOpen, setAnalysisOpen] = useState(false);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [analysisText, setAnalysisText] = useState('');
+  const [analysisError, setAnalysisError] = useState('');
 
   useEffect(() => {
     axios.get(`${API}/tournaments`).then(r => {
@@ -148,6 +315,26 @@ export default function MyTeamsPage() {
   };
 
   const clearTeam = () => { if (!locked) setCurrentTeam([...EMPTY_TEAM]); };
+
+  const handleAnalyze = async () => {
+    const filledTeam = currentTeam.filter(Boolean);
+    if (filledTeam.length < 5) { toast.error('Fill all 5 slots to analyze your team'); return; }
+    setAnalysisText('');
+    setAnalysisError('');
+    setAnalysisOpen(true);
+    setAnalysisLoading(true);
+    try {
+      const res = await axios.post(`${API}/analyze-team`, {
+        golfers: filledTeam,
+        tournament_name: tournament?.name || 'this tournament',
+      });
+      setAnalysisText(res.data.analysis);
+    } catch (e) {
+      setAnalysisError(e.response?.data?.detail || 'Something went wrong. Please try again.');
+    } finally {
+      setAnalysisLoading(false);
+    }
+  };
 
   // Saves both Team 1 and Team 2 at once
   const saveTeams = async () => {
@@ -275,7 +462,20 @@ export default function MyTeamsPage() {
                     </button>
                   </div>
                 </div>
-                {!locked && <button onClick={clearTeam} className="text-white/60 hover:text-white" data-testid={`clear-team-${activeTeam}`}><Trash2 className="w-4 h-4" /></button>}
+                <div className="flex items-center gap-2">
+                  {/* Analyze Team button — visible when team is full */}
+                  {currentFull && (
+                    <button
+                      onClick={handleAnalyze}
+                      title="Analyze Team with AI"
+                      className="flex items-center gap-1 px-2 py-1 rounded-md bg-yellow-400/20 hover:bg-yellow-400/35 text-yellow-300 hover:text-yellow-200 transition-all text-xs font-bold border border-yellow-400/30 hover:border-yellow-300/50"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Analyze</span>
+                    </button>
+                  )}
+                  {!locked && <button onClick={clearTeam} className="text-white/60 hover:text-white" data-testid={`clear-team-${activeTeam}`}><Trash2 className="w-4 h-4" /></button>}
+                </div>
               </div>
 
               <div className="divide-y divide-slate-50">
@@ -336,7 +536,7 @@ export default function MyTeamsPage() {
               <div className="px-4 py-2.5 bg-gradient-to-r from-[#1B4332]/10 to-[#2D6A4F]/5 border-b border-[#1B4332]/15">
                 <span className="font-heading font-bold text-sm text-[#1B4332] uppercase tracking-wider">Select Golfers</span>
               </div>
-              <div className="p-3 border-b border-slate-100 flex items-center gap-2">
+              <div className="p-3 border-b border-slate-300 flex items-center gap-2">
                 <Search className="w-4 h-4 text-slate-400" />
                 <Input data-testid="golfer-search" value={search} onChange={e => setSearch(e.target.value)}
                   placeholder="Search golfers..." className="h-9 border-0 shadow-none focus-visible:ring-0 text-sm" />
@@ -393,6 +593,16 @@ export default function MyTeamsPage() {
         onClose={() => setAuthOpen(false)}
         onSuccess={handleAuthSuccess}
         defaultMode={authMode}
+      />
+
+      <AnalysisModal
+        open={analysisOpen}
+        onClose={() => setAnalysisOpen(false)}
+        loading={analysisLoading}
+        analysis={analysisText}
+        error={analysisError}
+        tournamentName={tournament?.name}
+        team={currentTeam}
       />
     </div>
   );
