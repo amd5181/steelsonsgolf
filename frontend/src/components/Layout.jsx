@@ -54,7 +54,7 @@ export default function Layout() {
                   key={item.path}
                   data-testid={`nav-${item.label.toLowerCase().replace(/\s/g, '-')}`}
                   onClick={() => navigate(item.path)}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all ${
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all whitespace-nowrap ${
                     active ? 'bg-[#1B4332] text-white' : 'text-slate-600 hover:bg-slate-100'
                   }`}
                 >
