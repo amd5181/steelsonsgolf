@@ -72,12 +72,17 @@ function getDefaultTournamentId(tournaments) {
   return closest ? closest.id : null;
 }
 
+const PaymentDot = ({ paid }) => paid
+  ? <span className="flex-shrink-0 w-2 h-2 rounded-full bg-emerald-500" title="Paid" />
+  : <span className="flex-shrink-0 w-2 h-2 rounded-full bg-red-500 animate-pulse" title="Unpaid" />;
+
 export default function LeaderboardPage() {
   const { user } = useAuth();
   const [tournaments, setTournaments] = useState([]);
   const [selectedTid, setSelectedTid] = useState(null);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [tournamentLoading, setTournamentLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [expandedStandings, setExpandedStandings] = useState(false);
   const [expanded, setExpanded] = useState(true);
@@ -100,14 +105,18 @@ export default function LeaderboardPage() {
 
   useEffect(() => {
     if (!selectedTid) return;
-    setData(null); // Clear stale data immediately so previous tournament's teams don't flash
+    setTournamentLoading(true);
+    const load = async () => {
+      await fetchLeaderboard();
+      setTournamentLoading(false);
+    };
     if (user) {
       // Trigger a silent refresh on initial load so scores are up to date
       axios.post(`${API}/scores/refresh/${selectedTid}?user_id=${user.id}`)
         .catch(() => {})
-        .finally(() => fetchLeaderboard());
+        .finally(load);
     } else {
-      fetchLeaderboard();
+      load();
     }
   }, [fetchLeaderboard, selectedTid, user]);
 
@@ -207,12 +216,9 @@ export default function LeaderboardPage() {
         team.rank === 2 ? 'bg-slate-100 text-slate-600' :
         team.rank === 3 ? 'bg-amber-100 text-amber-700' : 'bg-slate-50 text-slate-400'
       }`}>{team.rank}</div>
-      <div className="flex-1 flex items-center gap-1.5 min-w-0 mr-2">
+      <div className="flex-1 flex items-center gap-2 min-w-0 mr-2">
         <span className="text-sm font-medium text-[#0F172A] truncate">{team.team_name}</span>
-        {team.paid
-          ? <span className="flex-shrink-0 text-[9px] font-bold bg-emerald-100 text-emerald-700 rounded-full px-1.5 py-0.5 border border-emerald-200">PAID</span>
-          : <span className="flex-shrink-0 text-[9px] font-bold bg-red-100 text-red-500 rounded-full px-1.5 py-0.5 border border-red-200 animate-pulse">UNPAID</span>
-        }
+        <PaymentDot paid={team.paid} />
       </div>
       <span className="font-numbers font-bold text-sm text-[#1B4332]">
         {typeof team.total_points === 'number' ? team.total_points.toFixed(2) : team.total_points}
@@ -220,6 +226,8 @@ export default function LeaderboardPage() {
       <span className="text-xs text-slate-400 ml-1">pts</span>
     </div>
   );
+
+  const hasContent = data && (standings.length > 0 || allScores.length > 0);
 
   return (
     <>
@@ -247,153 +255,163 @@ export default function LeaderboardPage() {
           ))}
         </div>
 
-        {!data || (!standings.length && !allScores.length) ? (
+        {/* Loading spinner when switching tournaments with no prior data */}
+        {tournamentLoading && !hasContent ? (
+          <div className="flex items-center justify-center py-20" data-testid="no-leaderboard">
+            <Loader2 className="w-8 h-8 text-[#1B4332] animate-spin" />
+          </div>
+        ) : !hasContent ? (
           <div className="bg-white rounded-xl border border-slate-200 p-8 text-center" data-testid="no-leaderboard">
             <BarChart2 className="w-12 h-12 text-slate-200 mx-auto mb-3" />
             <p className="text-slate-400 text-lg font-medium">Nothing to display yet</p>
             <p className="text-slate-400 text-sm mt-1">Check back when the tournament begins.</p>
           </div>
         ) : (
-          <>
-            <div className="lg:hidden">
-              <TournamentStandingsBox isMobile={true} />
-            </div>
+          <div className="relative">
+            {/* Soft overlay + spinner while switching tournaments */}
+            {tournamentLoading && (
+              <div className="absolute inset-0 z-10 bg-white/60 rounded-xl flex items-center justify-center">
+                <Loader2 className="w-8 h-8 text-[#1B4332] animate-spin" />
+              </div>
+            )}
+            <div className={tournamentLoading ? 'opacity-40 pointer-events-none' : ''}>
+              <div className="lg:hidden">
+                <TournamentStandingsBox isMobile={true} />
+              </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2 space-y-3">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 space-y-3">
 
-                {finalized && winners.length > 0 && (
-                  <div className="bg-gradient-to-r from-[#1B4332] to-[#2D6A4F] rounded-xl p-4 text-white" data-testid="winners-banner">
-                    <h3 className="font-heading font-bold text-sm uppercase tracking-wider mb-3 text-[#CCFF00]">
-                      {data.tournament?.name} Champions
-                    </h3>
-                    <div className="flex gap-4 flex-wrap">
-                      {winners.map((w, i) => (
-                        <div key={w.team_id} className="flex items-center gap-2">
-                          <Medal className={`w-5 h-5 ${i === 0 ? 'text-yellow-400' : i === 1 ? 'text-slate-300' : 'text-amber-500'}`} />
-                          <span className="font-bold text-sm">{w.team_name}</span>
-                          <span className="text-xs text-white/60 font-numbers">{typeof w.total_points === 'number' ? w.total_points.toFixed(2) : w.total_points} pts</span>
+                  {finalized && winners.length > 0 && (
+                    <div className="bg-gradient-to-r from-[#1B4332] to-[#2D6A4F] rounded-xl p-4 text-white" data-testid="winners-banner">
+                      <h3 className="font-heading font-bold text-sm uppercase tracking-wider mb-3 text-[#CCFF00]">
+                        {data.tournament?.name} Champions
+                      </h3>
+                      <div className="flex gap-4 flex-wrap">
+                        {winners.map((w, i) => (
+                          <div key={w.team_id} className="flex items-center gap-2">
+                            <Medal className={`w-5 h-5 ${i === 0 ? 'text-yellow-400' : i === 1 ? 'text-slate-300' : 'text-amber-500'}`} />
+                            <span className="font-bold text-sm">{w.team_name}</span>
+                            <span className="text-xs text-white/60 font-numbers">{typeof w.total_points === 'number' ? w.total_points.toFixed(2) : w.total_points} pts</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {isBeforeDeadline ? (
+                    <div className="bg-white rounded-xl border border-slate-200 p-8 text-center">
+                      <Lock className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                      <p className="text-slate-700 text-lg font-bold mb-1">Standings Locked</p>
+                      <p className="text-slate-400 text-sm">Team standings will be revealed after the deadline.</p>
+                      {currentTournament?.deadline && (
+                        <p className="text-xs text-slate-500 mt-2">
+                          Unlocks: {new Date(currentTournament.deadline).toLocaleString('en-US', {
+                            month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
+                          })}
+                        </p>
+                      )}
+                    </div>
+                  ) : standings.length === 0 ? (
+                    <div className="bg-white rounded-xl border border-slate-200 p-8 text-center">
+                      <BarChart2 className="w-10 h-10 text-slate-200 mx-auto mb-2" />
+                      <p className="text-slate-400 text-sm">No fantasy teams entered yet</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-slate-400 font-semibold">{standings.length} teams</span>
+                        <button
+                          onClick={() => setExpanded(e => !e)}
+                          className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border-2 transition-all ${
+                            expanded
+                              ? 'bg-white text-[#1B4332] border-[#1B4332] hover:bg-[#1B4332] hover:text-white'
+                              : 'bg-[#1B4332] text-white border-[#1B4332] hover:bg-[#2D6A4F]'
+                          }`}
+                        >
+                          {expanded
+                            ? <><List className="w-3.5 h-3.5" />Collapse</>
+                            : <><LayoutList className="w-3.5 h-3.5" />Expand</>
+                          }
+                        </button>
+                      </div>
+
+                      {!expanded && (
+                        <div className="bg-white rounded-xl border border-[#1B4332]/20 shadow-sm overflow-hidden">
+                          {standings.map(team => <CollapsedRow key={team.team_id} team={team} />)}
+                        </div>
+                      )}
+
+                      {expanded && standings.map(team => (
+                        <div key={team.team_id} className="bg-white rounded-xl border border-[#1B4332]/20 shadow-sm overflow-hidden"
+                          data-testid={`team-standing-${team.rank}`}>
+                          <div className="flex items-center px-4 py-3 border-b border-slate-50">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-numbers font-bold text-sm mr-3 flex-shrink-0 ${
+                              team.rank === 1 ? 'bg-yellow-100 text-yellow-700' :
+                              team.rank === 2 ? 'bg-slate-100 text-slate-600' :
+                              team.rank === 3 ? 'bg-amber-100 text-amber-700' : 'bg-slate-50 text-slate-400'
+                            }`}>{team.rank}</div>
+                            <div className="flex-1 min-w-0 flex items-center gap-2">
+                              <span className="font-bold text-sm text-[#0F172A] truncate">{team.team_name}</span>
+                              <PaymentDot paid={team.paid} />
+                            </div>
+                            <span className="font-numbers font-bold text-lg text-[#1B4332] ml-2" data-testid={`team-points-${team.rank}`}>
+                              {typeof team.total_points === 'number' ? team.total_points.toFixed(2) : team.total_points}
+                            </span>
+                            <span className="text-xs text-slate-400 ml-1">pts</span>
+                          </div>
+
+                          <div className="flex items-center px-4 py-1 bg-slate-50 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                            <span className="hidden sm:block w-10">Pos</span>
+                            <span className="flex-1">Player</span>
+                            <div className="flex gap-0.5 mr-1">
+                              <span className="w-6 text-center">R1</span>
+                              <span className="w-6 text-center">R2</span>
+                              <span className="w-6 text-center">R3</span>
+                              <span className="w-6 text-center">R4</span>
+                            </div>
+                            <span className="w-8 text-right">Tot</span>
+                            <span className="w-9 text-center">Thru</span>
+                            <span className="w-11 text-right">Pts</span>
+                          </div>
+
+                          <div className="divide-y divide-slate-50">
+                            {team.golfers.map((g, i) => (
+                              <div key={i} className="flex items-center px-4 py-1.5 text-xs">
+                                <span className={`hidden sm:block w-10 font-numbers font-bold flex-shrink-0 ${g.is_cut ? 'text-red-400' : g.is_active ? 'text-green-500 pulse-active' : 'text-slate-500'}`}>
+                                  {g.is_cut ? 'CUT' : g.position || '-'}{g.is_active && !g.is_cut && '*'}
+                                </span>
+                                <span className="flex-1 font-medium text-[#0F172A] truncate min-w-0 mr-1">
+                                  <span className="sm:hidden">{abbrevName(g.name)}</span>
+                                  <span className="hidden sm:inline">{g.name}</span>
+                                </span>
+                                <div className="flex gap-0.5 mr-1 flex-shrink-0">
+                                  {renderRounds(g)}
+                                </div>
+                                <span className={`w-8 text-right font-numbers flex-shrink-0 ${g.total_score === '-' ? 'text-slate-300' : 'text-slate-600'}`}>
+                                  {g.total_score}
+                                </span>
+                                <span className="w-9 text-center flex-shrink-0 flex items-center justify-center">
+                                  {renderThruCell(g)}
+                                </span>
+                                <span className="w-11 text-right font-numbers font-bold text-[#1B4332] flex-shrink-0">
+                                  {typeof g.total_points === 'number' ? g.total_points.toFixed(2) : g.total_points}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       ))}
-                    </div>
-                  </div>
-                )}
+                    </>
+                  )}
+                </div>
 
-                {isBeforeDeadline ? (
-                  <div className="bg-white rounded-xl border border-slate-200 p-8 text-center">
-                    <Lock className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                    <p className="text-slate-700 text-lg font-bold mb-1">Standings Locked</p>
-                    <p className="text-slate-400 text-sm">Team standings will be revealed after the deadline.</p>
-                    {currentTournament?.deadline && (
-                      <p className="text-xs text-slate-500 mt-2">
-                        Unlocks: {new Date(currentTournament.deadline).toLocaleString('en-US', {
-                          month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
-                        })}
-                      </p>
-                    )}
-                  </div>
-                ) : standings.length === 0 ? (
-                  <div className="bg-white rounded-xl border border-slate-200 p-8 text-center">
-                    <BarChart2 className="w-10 h-10 text-slate-200 mx-auto mb-2" />
-                    <p className="text-slate-400 text-sm">No fantasy teams entered yet</p>
-                  </div>
-                ) : (
-                  <>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-slate-400 font-semibold">{standings.length} teams</span>
-                      <button
-                        onClick={() => setExpanded(e => !e)}
-                        className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border-2 transition-all ${
-                          expanded
-                            ? 'bg-white text-[#1B4332] border-[#1B4332] hover:bg-[#1B4332] hover:text-white'
-                            : 'bg-[#1B4332] text-white border-[#1B4332] hover:bg-[#2D6A4F]'
-                        }`}
-                      >
-                        {expanded
-                          ? <><List className="w-3.5 h-3.5" />Collapse</>
-                          : <><LayoutList className="w-3.5 h-3.5" />Expand</>
-                        }
-                      </button>
-                    </div>
-
-                    {!expanded && (
-                      <div className="bg-white rounded-xl border border-[#1B4332]/20 shadow-sm overflow-hidden">
-                        {standings.map(team => <CollapsedRow key={team.team_id} team={team} />)}
-                      </div>
-                    )}
-
-                    {expanded && standings.map(team => (
-                      <div key={team.team_id} className="bg-white rounded-xl border border-[#1B4332]/20 shadow-sm overflow-hidden"
-                        data-testid={`team-standing-${team.rank}`}>
-                        <div className="flex items-center px-4 py-3 border-b border-slate-50">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-numbers font-bold text-sm mr-3 flex-shrink-0 ${
-                            team.rank === 1 ? 'bg-yellow-100 text-yellow-700' :
-                            team.rank === 2 ? 'bg-slate-100 text-slate-600' :
-                            team.rank === 3 ? 'bg-amber-100 text-amber-700' : 'bg-slate-50 text-slate-400'
-                          }`}>{team.rank}</div>
-                          <div className="flex-1 min-w-0 flex items-center gap-2">
-                            <span className="font-bold text-sm text-[#0F172A] truncate">{team.team_name}</span>
-                            {team.paid
-                              ? <span className="flex-shrink-0 text-[9px] font-bold bg-emerald-100 text-emerald-700 rounded-full px-1.5 py-0.5 border border-emerald-200">PAID</span>
-                              : <span className="flex-shrink-0 text-[9px] font-bold bg-red-100 text-red-500 rounded-full px-1.5 py-0.5 border border-red-200 animate-pulse">UNPAID</span>
-                            }
-                          </div>
-                          <span className="font-numbers font-bold text-lg text-[#1B4332] ml-2" data-testid={`team-points-${team.rank}`}>
-                            {typeof team.total_points === 'number' ? team.total_points.toFixed(2) : team.total_points}
-                          </span>
-                          <span className="text-xs text-slate-400 ml-1">pts</span>
-                        </div>
-
-                        <div className="flex items-center px-4 py-1 bg-slate-50 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                          <span className="hidden sm:block w-10">Pos</span>
-                          <span className="flex-1">Player</span>
-                          <div className="flex gap-0.5 mr-1">
-                            <span className="w-6 text-center">R1</span>
-                            <span className="w-6 text-center">R2</span>
-                            <span className="w-6 text-center">R3</span>
-                            <span className="w-6 text-center">R4</span>
-                          </div>
-                          <span className="w-8 text-right">Tot</span>
-                          <span className="w-9 text-center">Thru</span>
-                          <span className="w-11 text-right">Pts</span>
-                        </div>
-
-                        <div className="divide-y divide-slate-50">
-                          {team.golfers.map((g, i) => (
-                            <div key={i} className="flex items-center px-4 py-1.5 text-xs">
-                              <span className={`hidden sm:block w-10 font-numbers font-bold flex-shrink-0 ${g.is_cut ? 'text-red-400' : g.is_active ? 'text-green-500 pulse-active' : 'text-slate-500'}`}>
-                                {g.is_cut ? 'CUT' : g.position || '-'}{g.is_active && !g.is_cut && '*'}
-                              </span>
-                              <span className="flex-1 font-medium text-[#0F172A] truncate min-w-0 mr-1">
-                                <span className="sm:hidden">{abbrevName(g.name)}</span>
-                                <span className="hidden sm:inline">{g.name}</span>
-                              </span>
-                              <div className="flex gap-0.5 mr-1 flex-shrink-0">
-                                {renderRounds(g)}
-                              </div>
-                              <span className={`w-8 text-right font-numbers flex-shrink-0 ${g.total_score === '-' ? 'text-slate-300' : 'text-slate-600'}`}>
-                                {g.total_score}
-                              </span>
-                              <span className="w-9 text-center flex-shrink-0 flex items-center justify-center">
-                                {renderThruCell(g)}
-                              </span>
-                              <span className="w-11 text-right font-numbers font-bold text-[#1B4332] flex-shrink-0">
-                                {typeof g.total_points === 'number' ? g.total_points.toFixed(2) : g.total_points}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </>
-                )}
-              </div>
-
-              <div className="hidden lg:block lg:col-span-1">
-                <TournamentStandingsBox isMobile={false} />
+                <div className="hidden lg:block lg:col-span-1">
+                  <TournamentStandingsBox isMobile={false} />
+                </div>
               </div>
             </div>
-          </>
+          </div>
         )}
 
         <div className="h-20" />
