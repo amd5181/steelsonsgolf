@@ -81,7 +81,7 @@ const TOURNAMENT_LORE = {
     ],
   },
   2: {
-    tagline: "Glory's last shot.",
+    tagline: 'No amateurs. No excuses.',
     headerGradient: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 55%, #1d4ed8 100%)',
     champions: [
       { year: 2025, name: 'Scottie Scheffler' },
@@ -143,6 +143,7 @@ const TOURNAMENT_LORE = {
 function TournamentLoreModal({ slot, onClose }) {
   const lore = TOURNAMENT_LORE[slot];
   const name = SLOT_NAMES[(slot ?? 1) - 1];
+  const venue = SLOT_VENUES[slot];
   if (!lore) return null;
 
   return (
@@ -189,6 +190,7 @@ function TournamentLoreModal({ slot, onClose }) {
               <span className="text-[10px] font-bold tracking-[0.18em] text-slate-400 uppercase">The Course</span>
             </div>
             <div className="bg-slate-50 rounded-xl p-4">
+              <p className="font-semibold text-sm text-[#0F172A] mb-3">{venue.course}</p>
               <div className="flex gap-6 mb-3">
                 <div className="text-center">
                   <div className="font-numbers font-extrabold text-xl text-[#1B4332] leading-none">{lore.course.yards}</div>
@@ -216,6 +218,7 @@ function TournamentLoreModal({ slot, onClose }) {
               <span className="text-[10px] font-bold tracking-[0.18em] text-slate-400 uppercase">Expect</span>
             </div>
             <div className="bg-sky-50 border border-sky-100 rounded-xl p-4">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-sky-500/80 mb-2">{venue.location}</p>
               <div className="flex items-baseline gap-2.5 mb-1.5">
                 <span className="font-numbers font-bold text-lg text-sky-700 leading-none">{lore.weather.temp}</span>
                 <span className="text-sm text-sky-600 font-medium">{lore.weather.desc}</span>
