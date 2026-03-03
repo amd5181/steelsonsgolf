@@ -287,7 +287,13 @@ export default function MyTeamsPage() {
                     {g ? (
                       <>
                         <span className="w-10 text-xs font-bold text-slate-500 font-numbers">#{golferMap[g.name]?.world_ranking || g.world_ranking || '?'}</span>
-                        <span className="flex-1 text-sm font-medium text-[#0F172A] truncate">{g.name}</span>
+                        {golferMap[g.name] ? (
+                          <span className="flex-1 text-sm font-medium text-[#0F172A] truncate">{g.name}</span>
+                        ) : (
+                          <span className="flex-1 text-sm font-bold text-red-600 truncate min-w-0">
+                            {g.name}<span className="ml-1.5 text-xs font-normal text-red-500 whitespace-nowrap">· Not in field</span>
+                          </span>
+                        )}
                         <span className="text-xs font-bold font-numbers text-[#2D6A4F] ml-2 mr-3">{fmt(g.price)}</span>
                         {!locked && <button onClick={() => removeGolfer(i)} className="text-red-400 hover:text-red-600" data-testid={`remove-golfer-${activeTeam}-${i}`}><Minus className="w-4 h-4" /></button>}
                       </>

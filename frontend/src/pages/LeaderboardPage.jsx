@@ -100,6 +100,7 @@ export default function LeaderboardPage() {
 
   useEffect(() => {
     if (!selectedTid) return;
+    setData(null); // Clear stale data immediately so previous tournament's teams don't flash
     if (user) {
       // Trigger a silent refresh on initial load so scores are up to date
       axios.post(`${API}/scores/refresh/${selectedTid}?user_id=${user.id}`)

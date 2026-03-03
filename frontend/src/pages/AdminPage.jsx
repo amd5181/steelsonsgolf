@@ -309,6 +309,8 @@ export default function AdminPage() {
     t.golfers?.length > 0 && t.espn_event_id &&
     t.golfers.some(g => !g.espn_id);
 
+  const activePlayerNames = new Set(teamsDialog.tournament?.golfers?.map(g => g.name) || []);
+
   if (loading) return <div className="flex items-center justify-center h-[60vh]"><Loader2 className="w-8 h-8 text-[#1B4332] animate-spin" /></div>;
 
   return (
@@ -820,13 +822,19 @@ export default function AdminPage() {
                         </div>
                       </div>
                       <div className="space-y-1">
-                        {team.golfers.map((g, i) => (
-                          <div key={i} className="flex items-center text-xs">
-                            <span className="w-5 text-slate-400">{i + 1}.</span>
-                            <span className="flex-1 text-slate-700">{g.name}</span>
-                            <span className="font-numbers text-[#2D6A4F]">{fmt(g.price)}</span>
-                          </div>
-                        ))}
+                        {team.golfers.map((g, i) => {
+                          const isOut = activePlayerNames.size > 0 && !activePlayerNames.has(g.name);
+                          return (
+                            <div key={i} className="flex items-center text-xs">
+                              <span className="w-5 text-slate-400">{i + 1}.</span>
+                              <span className={`flex-1 ${isOut ? 'font-bold text-red-600' : 'text-slate-700'}`}>
+                                {g.name}
+                                {isOut && <span className="ml-1.5 text-xs font-normal text-red-500">· Not in field</span>}
+                              </span>
+                              <span className="font-numbers text-[#2D6A4F]">{fmt(g.price)}</span>
+                            </div>
+                          );
+                        })}
                       </div>
                       <div className="mt-2 pt-2 border-t border-slate-200 flex justify-between text-xs">
                         <span className="text-slate-400">Total Cost:</span>
