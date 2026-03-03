@@ -65,11 +65,11 @@ const TOURNAMENT_LORE = {
     tagline: 'A tradition unlike any other.',
     headerGradient: 'linear-gradient(135deg, #0a2a14 0%, #1B4332 55%, #2D6A4F 100%)',
     champions: [
+      { year: 2025, name: 'Rory McIlroy' },
       { year: 2024, name: 'Scottie Scheffler' },
       { year: 2023, name: 'Jon Rahm' },
       { year: 2022, name: 'Scottie Scheffler' },
       { year: 2021, name: 'Hideki Matsuyama' },
-      { year: 2020, name: 'Dustin Johnson' },
     ],
     course: { par: 72, yards: '7,510', est: 1932, note: 'Amen Corner (holes 11–13) decides the Masters every year.' },
     weather: { temp: '65–75°F', desc: 'Mild & blooming', note: 'Azaleas peak early in the week. Afternoon storms can arrive fast after the cut.' },
@@ -84,11 +84,11 @@ const TOURNAMENT_LORE = {
     tagline: "Glory's last shot.",
     headerGradient: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 55%, #1d4ed8 100%)',
     champions: [
+      { year: 2025, name: 'Scottie Scheffler' },
       { year: 2024, name: 'Xander Schauffele' },
       { year: 2023, name: 'Brooks Koepka' },
       { year: 2022, name: 'Justin Thomas' },
       { year: 2021, name: 'Phil Mickelson' },
-      { year: 2020, name: 'Collin Morikawa' },
     ],
     course: { par: 70, yards: '7,320', est: 1928, note: 'Tree-lined, tight fairways and small greens that punish imprecision.' },
     weather: { temp: '68–78°F', desc: 'Warm & humid', note: 'Pennsylvania in May — comfortable mornings, afternoon thunderstorms possible.' },
@@ -103,10 +103,10 @@ const TOURNAMENT_LORE = {
     tagline: 'The toughest test in golf.',
     headerGradient: 'linear-gradient(135deg, #1a0505 0%, #7f1d1d 55%, #b91c1c 100%)',
     champions: [
+      { year: 2025, name: 'JJ Spaun' },
       { year: 2024, name: 'Bryson DeChambeau' },
       { year: 2023, name: 'Wyndham Clark' },
       { year: 2022, name: 'Matt Fitzpatrick' },
-      { year: 2021, name: 'Jon Rahm' },
       { year: 2004, name: 'Retief Goosen', note: 'Last at Shinnecock' },
     ],
     course: { par: 70, yards: '7,445', est: 1891, note: 'Shinnecock Hills — penal rough, blind shots, and greens that slope away.' },
@@ -122,10 +122,10 @@ const TOURNAMENT_LORE = {
     tagline: 'The original. The Claret Jug.',
     headerGradient: 'linear-gradient(135deg, #0a0f1e 0%, #1e2a4a 55%, #334155 100%)',
     champions: [
+      { year: 2025, name: 'Scottie Scheffler' },
       { year: 2024, name: 'Xander Schauffele' },
       { year: 2023, name: 'Brian Harman' },
       { year: 2022, name: 'Cameron Smith' },
-      { year: 2021, name: 'Collin Morikawa' },
       { year: 1998, name: "Mark O'Meara", note: 'Last at Birkdale' },
     ],
     course: { par: 70, yards: '7,156', est: 1889, note: 'Dunes, pot bunkers, and relentless Irish Sea wind off the coast.' },
@@ -147,7 +147,10 @@ function TournamentLoreModal({ slot, onClose }) {
 
   return (
     <Dialog open={!!slot} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="sm:max-w-md p-0 overflow-hidden flex flex-col gap-0" style={{ maxHeight: '88vh' }}>
+      <DialogContent
+        className="sm:max-w-md p-0 overflow-hidden flex flex-col gap-0 top-[3%] translate-y-0 sm:top-[50%] sm:translate-y-[-50%] [&>button:last-child]:text-white [&>button:last-child]:opacity-80 [&>button:last-child]:hover:opacity-100 [&>button:last-child]:rounded-full [&>button:last-child]:bg-black/30 [&>button:last-child]:p-1"
+        style={{ maxHeight: 'calc(100dvh - 2rem)' }}
+      >
 
         {/* Header */}
         <div className="flex-shrink-0 px-6 py-6 relative" style={{ background: lore.headerGradient }}>
@@ -392,7 +395,7 @@ function FeaturedBanner({ t, navigate, onLoreClick }) {
         style={{ background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(8px)', color: 'rgba(255,255,255,0.65)', border: '1px solid rgba(255,255,255,0.18)' }}
       >
         <BookOpen className="w-3.5 h-3.5" />
-        History
+        Info
       </button>
     </div>
   );
@@ -448,7 +451,7 @@ function SmallCard({ t, onLoreClick }) {
             className="flex items-center gap-1 text-[11px] font-semibold text-slate-400 hover:text-[#1B4332] transition-colors"
           >
             <BookOpen className="w-3 h-3" />
-            History
+            Info
           </button>
         </div>
       </div>
