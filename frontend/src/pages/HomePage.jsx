@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API } from '../App';
-import { Calendar, Users, Clock, ChevronRight, Loader2, MapPin, Trophy } from 'lucide-react';
+import { Calendar, Users, Clock, ChevronRight, Loader2, MapPin, Trophy, BookOpen, Flag, Wind, Zap } from 'lucide-react';
 import { Badge } from '../components/ui/badge';
+import { Dialog, DialogContent } from '../components/ui/dialog';
 
 function formatDate(dateStr) {
   if (!dateStr) return 'TBD';
@@ -58,6 +59,191 @@ const SLOT_VIDEOS = {
   4: 'https://res.cloudinary.com/dsvpfi9te/video/upload/v1772420879/MicrosoftTeams-video_2_hfd5sd.mp4',
 };
 
+// ─── Per-major lore data ───────────────────────────────────────────────────
+const TOURNAMENT_LORE = {
+  1: {
+    tagline: 'A tradition unlike any other.',
+    headerGradient: 'linear-gradient(135deg, #0a2a14 0%, #1B4332 55%, #2D6A4F 100%)',
+    champions: [
+      { year: 2024, name: 'Scottie Scheffler' },
+      { year: 2023, name: 'Jon Rahm' },
+      { year: 2022, name: 'Scottie Scheffler' },
+      { year: 2021, name: 'Hideki Matsuyama' },
+      { year: 2020, name: 'Dustin Johnson' },
+    ],
+    course: { par: 72, yards: '7,510', est: 1932, note: 'Amen Corner (holes 11–13) decides the Masters every year.' },
+    weather: { temp: '65–75°F', desc: 'Mild & blooming', note: 'Azaleas peak early in the week. Afternoon storms can arrive fast after the cut.' },
+    facts: [
+      'The only major played at the same course every single year.',
+      'Past champions keep the green jacket at Augusta — it never fully leaves.',
+      'Tuesday night is the Champions Dinner, menu chosen by the reigning champion.',
+      'Tiger Woods has won 5 Masters — more than any player in history.',
+    ],
+  },
+  2: {
+    tagline: "Glory's last shot.",
+    headerGradient: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 55%, #1d4ed8 100%)',
+    champions: [
+      { year: 2024, name: 'Xander Schauffele' },
+      { year: 2023, name: 'Brooks Koepka' },
+      { year: 2022, name: 'Justin Thomas' },
+      { year: 2021, name: 'Phil Mickelson' },
+      { year: 2020, name: 'Collin Morikawa' },
+    ],
+    course: { par: 70, yards: '7,320', est: 1928, note: 'Tree-lined, tight fairways and small greens that punish imprecision.' },
+    weather: { temp: '68–78°F', desc: 'Warm & humid', note: 'Pennsylvania in May — comfortable mornings, afternoon thunderstorms possible.' },
+    facts: [
+      'The Wanamaker Trophy is the largest trophy in professional golf.',
+      'Phil Mickelson won in 2021 at age 50 — the oldest major champion ever.',
+      'Unlike the other majors, the PGA Championship fields zero amateurs.',
+      'Jack Nicklaus holds the record with 5 PGA Championship titles.',
+    ],
+  },
+  3: {
+    tagline: 'The toughest test in golf.',
+    headerGradient: 'linear-gradient(135deg, #1a0505 0%, #7f1d1d 55%, #b91c1c 100%)',
+    champions: [
+      { year: 2024, name: 'Bryson DeChambeau' },
+      { year: 2023, name: 'Wyndham Clark' },
+      { year: 2022, name: 'Matt Fitzpatrick' },
+      { year: 2021, name: 'Jon Rahm' },
+      { year: 2004, name: 'Retief Goosen', note: 'Last at Shinnecock' },
+    ],
+    course: { par: 70, yards: '7,445', est: 1891, note: 'Shinnecock Hills — penal rough, blind shots, and greens that slope away.' },
+    weather: { temp: '75–85°F', desc: 'Hot & breezy', note: 'June on Long Island. Ocean wind off Peconic Bay shifts club selection constantly.' },
+    facts: [
+      'The USGA sets up courses to make even par feel like a birdie barrage.',
+      'Even par regularly wins or contends. It is that hard.',
+      'Shinnecock Hills hosted in 1896 — among the very first US Opens ever played.',
+      'The US Open plays the back nine in reverse order on the final day.',
+    ],
+  },
+  4: {
+    tagline: 'The original. The Claret Jug.',
+    headerGradient: 'linear-gradient(135deg, #0a0f1e 0%, #1e2a4a 55%, #334155 100%)',
+    champions: [
+      { year: 2024, name: 'Xander Schauffele' },
+      { year: 2023, name: 'Brian Harman' },
+      { year: 2022, name: 'Cameron Smith' },
+      { year: 2021, name: 'Collin Morikawa' },
+      { year: 1998, name: "Mark O'Meara", note: 'Last at Birkdale' },
+    ],
+    course: { par: 70, yards: '7,156', est: 1889, note: 'Dunes, pot bunkers, and relentless Irish Sea wind off the coast.' },
+    weather: { temp: '55–68°F', desc: 'Breezy & overcast', note: 'July at Birkdale means coastal wind is the 15th club in every bag. Bring a layer.' },
+    facts: [
+      "Golf's oldest major, first played at Prestwick in 1860.",
+      'The winner lifts the Claret Jug — arguably the most iconic trophy in sport.',
+      'Links golf has no trees. Wind alone shapes strategy for all 72 holes.',
+      "Royal Birkdale's closing stretch is some of the most dramatic in championship golf.",
+    ],
+  },
+};
+
+// ─── Lore Modal ───────────────────────────────────────────────────────────
+function TournamentLoreModal({ slot, onClose }) {
+  const lore = TOURNAMENT_LORE[slot];
+  const name = SLOT_NAMES[(slot ?? 1) - 1];
+  if (!lore) return null;
+
+  return (
+    <Dialog open={!!slot} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="sm:max-w-md p-0 overflow-hidden flex flex-col gap-0" style={{ maxHeight: '88vh' }}>
+
+        {/* Header */}
+        <div className="flex-shrink-0 px-6 py-6 relative" style={{ background: lore.headerGradient }}>
+          <p className="text-[10px] font-bold tracking-[0.22em] uppercase mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
+            Tournament History
+          </p>
+          <h2 className="font-heading font-extrabold text-2xl uppercase leading-tight text-white">{name}</h2>
+          <p className="text-sm mt-1 italic" style={{ color: 'rgba(255,255,255,0.55)' }}>{lore.tagline}</p>
+        </div>
+
+        {/* Scrollable body */}
+        <div className="overflow-y-auto flex-1 px-5 py-5 space-y-5 bg-white">
+
+          {/* Champions */}
+          <section>
+            <div className="flex items-center gap-2 mb-3">
+              <Trophy className="w-3.5 h-3.5 text-yellow-500" />
+              <span className="text-[10px] font-bold tracking-[0.18em] text-slate-400 uppercase">Recent Champions</span>
+            </div>
+            <div className="space-y-1.5">
+              {lore.champions.map((c, i) => (
+                <div key={i} className={`flex items-center gap-3 px-3 py-2 rounded-lg ${i === 0 ? 'bg-yellow-50 border border-yellow-200' : 'bg-slate-50'}`}>
+                  <span className={`text-xs font-bold font-numbers w-10 flex-shrink-0 ${i === 0 ? 'text-yellow-600' : 'text-slate-400'}`}>{c.year}</span>
+                  <span className={`flex-1 text-sm font-semibold ${i === 0 ? 'text-yellow-900' : 'text-slate-700'}`}>{c.name}</span>
+                  {c.note && <span className="text-[9px] text-slate-400 italic flex-shrink-0">{c.note}</span>}
+                  {i === 0 && <Trophy className="w-3 h-3 text-yellow-400 flex-shrink-0" />}
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Course DNA */}
+          <section>
+            <div className="flex items-center gap-2 mb-3">
+              <Flag className="w-3.5 h-3.5 text-[#2D6A4F]" />
+              <span className="text-[10px] font-bold tracking-[0.18em] text-slate-400 uppercase">The Course</span>
+            </div>
+            <div className="bg-slate-50 rounded-xl p-4">
+              <div className="flex gap-6 mb-3">
+                <div className="text-center">
+                  <div className="font-numbers font-extrabold text-xl text-[#1B4332] leading-none">{lore.course.yards}</div>
+                  <div className="text-[9px] text-slate-400 uppercase tracking-wider mt-0.5">Yards</div>
+                </div>
+                <div className="w-px bg-slate-200 self-stretch" />
+                <div className="text-center">
+                  <div className="font-numbers font-extrabold text-xl text-[#1B4332] leading-none">{lore.course.par}</div>
+                  <div className="text-[9px] text-slate-400 uppercase tracking-wider mt-0.5">Par</div>
+                </div>
+                <div className="w-px bg-slate-200 self-stretch" />
+                <div className="text-center">
+                  <div className="font-numbers font-extrabold text-xl text-[#1B4332] leading-none">{lore.course.est}</div>
+                  <div className="text-[9px] text-slate-400 uppercase tracking-wider mt-0.5">Est.</div>
+                </div>
+              </div>
+              <p className="text-xs text-slate-500 border-t border-slate-200 pt-3 leading-relaxed">{lore.course.note}</p>
+            </div>
+          </section>
+
+          {/* Weather */}
+          <section>
+            <div className="flex items-center gap-2 mb-3">
+              <Wind className="w-3.5 h-3.5 text-sky-500" />
+              <span className="text-[10px] font-bold tracking-[0.18em] text-slate-400 uppercase">Expect</span>
+            </div>
+            <div className="bg-sky-50 border border-sky-100 rounded-xl p-4">
+              <div className="flex items-baseline gap-2.5 mb-1.5">
+                <span className="font-numbers font-bold text-lg text-sky-700 leading-none">{lore.weather.temp}</span>
+                <span className="text-sm text-sky-600 font-medium">{lore.weather.desc}</span>
+              </div>
+              <p className="text-xs text-sky-600/80 leading-relaxed">{lore.weather.note}</p>
+            </div>
+          </section>
+
+          {/* Fun Facts */}
+          <section>
+            <div className="flex items-center gap-2 mb-3">
+              <Zap className="w-3.5 h-3.5 text-amber-500" />
+              <span className="text-[10px] font-bold tracking-[0.18em] text-slate-400 uppercase">Did You Know?</span>
+            </div>
+            <div className="space-y-2.5">
+              {lore.facts.map((f, i) => (
+                <div key={i} className="flex gap-3 items-start">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0 mt-1.5" />
+                  <p className="text-xs text-slate-600 leading-relaxed">{f}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <div className="h-1" />
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function getVideoPoster(url) {
   return url.replace('/video/upload/', '/video/upload/so_0/').replace('.mp4', '.jpg');
 }
@@ -73,7 +259,7 @@ function getActiveSlot(allSlots) {
 // ─── LIME accent color used throughout the featured banner ───
 const LIME = '#C8FF00';
 
-function FeaturedBanner({ t, navigate }) {
+function FeaturedBanner({ t, navigate, onLoreClick }) {
   const badge = getStatusBadge(t.status, t.deadline, t.end_date);
   const venue = SLOT_VENUES[t.slot];
   const deadlinePassed = t.deadline && new Date() > new Date(t.deadline);
@@ -198,11 +384,21 @@ function FeaturedBanner({ t, navigate }) {
           </div>
         )}
       </div>
+
+      {/* History button — discreet, bottom-right */}
+      <button
+        onClick={() => onLoreClick(t.slot)}
+        className="absolute bottom-5 right-5 z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:bg-white/20 active:scale-95"
+        style={{ background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(8px)', color: 'rgba(255,255,255,0.65)', border: '1px solid rgba(255,255,255,0.18)' }}
+      >
+        <BookOpen className="w-3.5 h-3.5" />
+        History
+      </button>
     </div>
   );
 }
 
-function SmallCard({ t }) {
+function SmallCard({ t, onLoreClick }) {
   const badge = getStatusBadge(t.status, t.deadline, t.end_date);
   const venue = SLOT_VENUES[t.slot];
 
@@ -245,6 +441,16 @@ function SmallCard({ t }) {
           </div>
         </div>
 
+        {/* History button */}
+        <div className="flex justify-end mt-3 pt-3 border-t border-slate-100">
+          <button
+            onClick={() => onLoreClick(t.slot)}
+            className="flex items-center gap-1 text-[11px] font-semibold text-slate-400 hover:text-[#1B4332] transition-colors"
+          >
+            <BookOpen className="w-3 h-3" />
+            History
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -298,6 +504,7 @@ export default function HomePage() {
   const [tournaments, setTournaments] = useState([]);
   const [recentTournament, setRecentTournament] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loreSlot, setLoreSlot] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -330,13 +537,16 @@ export default function HomePage() {
   return (
     <div className="p-4 md:p-8 max-w-5xl mx-auto animate-fade-in-up" data-testid="tournament-grid">
       {/* Featured banner */}
-      <FeaturedBanner t={featured} navigate={navigate} />
+      <FeaturedBanner t={featured} navigate={navigate} onLoreClick={setLoreSlot} />
 
       {/* 3 small cards + Recent Winners in a 2×2 grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 stagger">
-        {others.map(t => <SmallCard key={t.slot} t={t} />)}
+        {others.map(t => <SmallCard key={t.slot} t={t} onLoreClick={setLoreSlot} />)}
         <RecentWinnersCard recentTournament={recentTournament} />
       </div>
+
+      {/* Tournament lore modal */}
+      <TournamentLoreModal slot={loreSlot} onClose={() => setLoreSlot(null)} />
     </div>
   );
 }
