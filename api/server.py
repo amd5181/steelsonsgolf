@@ -1092,31 +1092,24 @@ class TeamAnalysisRequest(BaseModel):
 
 @api_router.post("/analyze-team")
 async def analyze_team(request: TeamAnalysisRequest):
+    import json
+    from google.genai import types as genai_types
+
+    current_year = datetime.now().year
     golfer_lines = "\n".join([
-        f"  {g['name']} (Rank #{g.get('world_ranking', 'N/A')}, Salary ${g.get('price', 0):,})"
+        f"  {g['name']} (Rank #{g.get('world_ranking', 'N/A')})"
         for g in request.golfers
     ])
 
-    prompt = f"""You are an elite PGA Tour historian and fantasy golf expert. Analyze this fantasy golf team for {request.tournament_name}.
+    prompt = f"""You are a PGA Tour fantasy golf expert. It is {current_year}. Analyze this team for the {current_year} {request.tournament_name}, using the correct {current_year} host course and field.
 
 ROSTER:
 {golfer_lines}
 
-SCORING RULES: Missing the cut = zero points. Top finishes earn massive points (1st=300, 2nd=200, 3rd=175...). All 5 making the cut is essential. Picking the winner provides exponential leverage.
+RULES: Missing the cut = 0 pts. Top finishes earn huge points. All 5 making the cut is critical. Picking the winner is exponential leverage.
 
-Respond ONLY with a valid JSON object in this exact format, no markdown, no explanation outside the JSON:
-{{
-  "summary": "3-4 sentence honest team assessment covering overall ceiling, floor, and key storyline to watch",
-  "players": [
-    {{"name": "Player Name", "risk": "low|medium|high", "note": "One sharp sentence on their cut risk and upside"}},
-    {{"name": "Player Name", "risk": "low|medium|high", "note": "One sharp sentence on their cut risk and upside"}},
-    {{"name": "Player Name", "risk": "low|medium|high", "note": "One sharp sentence on their cut risk and upside"}},
-    {{"name": "Player Name", "risk": "low|medium|high", "note": "One sharp sentence on their cut risk and upside"}},
-    {{"name": "Player Name", "risk": "low|medium|high", "note": "One sharp sentence on their cut risk and upside"}}
-  ],
-  "grade": "A|A-|B+|B|B-|C+|C|C-|D",
-  "grade_note": "One sentence explaining the grade"
-}}"""
+Reply ONLY with this JSON (no markdown, no extra text):
+{{"summary":"2 sentences max: team ceiling and biggest concern","players":[{{"name":"Name","risk":"low|medium|high"}},{{"name":"Name","risk":"low|medium|high"}},{{"name":"Name","risk":"low|medium|high"}},{{"name":"Name","risk":"low|medium|high"}},{{"name":"Name","risk":"low|medium|high"}}],"grade":"A|A-|B+|B|B-|C+|C|C-|D","grade_note":"One phrase"}}"""
 
     try:
         client = google_genai.Client(api_key=GEMINI_API_KEY)
@@ -1124,15 +1117,15 @@ Respond ONLY with a valid JSON object in this exact format, no markdown, no expl
             client.models.generate_content,
             model="gemini-2.5-flash",
             contents=prompt,
+            config=genai_types.GenerateContentConfig(
+                thinking_config=genai_types.ThinkingConfig(thinking_budget=0)
+            ),
         )
         raw = response.text.strip()
-        # Strip markdown code fences if Gemini wraps the JSON
         if raw.startswith("```"):
             raw = re.sub(r"^```[a-z]*\n?", "", raw)
             raw = re.sub(r"\n?```$", "", raw.strip())
-        import json
-        parsed = json.loads(raw)
-        return parsed
+        return json.loads(raw)
     except Exception as e:
         logger.error(f"Gemini analysis error: {e}")
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")

@@ -41,16 +41,21 @@ function getDefaultTournamentSlot(tournaments) {
 const EMPTY_TEAM = [null, null, null, null, null];
 
 const RISK_CONFIG = {
-  low:    { label: 'Low Risk',    bar: 'bg-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-50',  pct: 25 },
-  medium: { label: 'Medium Risk', bar: 'bg-amber-400',   text: 'text-amber-700',  bg: 'bg-amber-50',    pct: 60 },
-  high:   { label: 'High Risk',   bar: 'bg-red-500',     text: 'text-red-700',    bg: 'bg-red-50',      pct: 90 },
+  low:    { label: 'LOW',  dot: 'bg-emerald-500', pill: 'bg-emerald-100 text-emerald-700' },
+  medium: { label: 'MED',  dot: 'bg-amber-400',   pill: 'bg-amber-100   text-amber-700'  },
+  high:   { label: 'HIGH', dot: 'bg-red-500',      pill: 'bg-red-100     text-red-700'    },
 };
 
 const GRADE_COLOR = {
-  'A': 'text-emerald-600', 'A-': 'text-emerald-600',
-  'B+': 'text-teal-600',   'B':  'text-teal-600',   'B-': 'text-teal-600',
-  'C+': 'text-amber-600',  'C':  'text-amber-600',  'C-': 'text-amber-600',
-  'D':  'text-red-600',
+  'A': 'text-emerald-600 border-emerald-200 bg-emerald-50',
+  'A-': 'text-emerald-600 border-emerald-200 bg-emerald-50',
+  'B+': 'text-teal-600 border-teal-200 bg-teal-50',
+  'B':  'text-teal-600 border-teal-200 bg-teal-50',
+  'B-': 'text-teal-600 border-teal-200 bg-teal-50',
+  'C+': 'text-amber-600 border-amber-200 bg-amber-50',
+  'C':  'text-amber-600 border-amber-200 bg-amber-50',
+  'C-': 'text-amber-600 border-amber-200 bg-amber-50',
+  'D':  'text-red-600 border-red-200 bg-red-50',
 };
 
 // Golf ball loading animation
@@ -143,43 +148,38 @@ function AnalysisModal({ open, onClose, loading, analysis, error, tournamentName
             <div className={`transition-all duration-500 ${revealed ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'}`}>
 
               {/* Grade + summary */}
-              <div className="px-5 pt-4 pb-3 flex gap-4 items-start">
-                <div className="flex-shrink-0 text-center">
-                  <div className={`text-4xl font-heading font-extrabold leading-none ${gradeColor}`}>{analysis.grade}</div>
-                  <div className="text-[10px] text-slate-400 mt-0.5 uppercase tracking-wide">Grade</div>
+              <div className="px-5 pt-4 pb-3 flex gap-3 items-center">
+                <div className={`flex-shrink-0 w-14 h-14 rounded-2xl border-2 flex items-center justify-center ${gradeColor}`}>
+                  <span className="text-2xl font-heading font-extrabold leading-none">{analysis.grade}</span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-slate-700 leading-relaxed">{analysis.summary}</p>
                   {analysis.grade_note && (
-                    <p className="text-xs text-slate-400 italic mt-1.5">{analysis.grade_note}</p>
+                    <p className="text-[11px] text-slate-400 mt-1">{analysis.grade_note}</p>
                   )}
                 </div>
               </div>
 
-              {/* Player risk bars */}
-              <div className="px-5 pb-4 space-y-2">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Cut Risk by Player</p>
-                {analysis.players?.map((p, i) => {
-                  const cfg = RISK_CONFIG[p.risk] || RISK_CONFIG.medium;
-                  return (
-                    <div key={i} className={`rounded-lg px-3 py-2 ${cfg.bg}`}>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-semibold text-slate-700 truncate mr-2">{p.name}</span>
-                        <span className={`text-[10px] font-bold uppercase tracking-wide flex-shrink-0 ${cfg.text}`}>{cfg.label}</span>
+              {/* Player risk list */}
+              <div className="px-5 pb-4">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Cut Risk</p>
+                <div className="space-y-1.5">
+                  {analysis.players?.map((p, i) => {
+                    const cfg = RISK_CONFIG[p.risk] || RISK_CONFIG.medium;
+                    return (
+                      <div key={i} className="flex items-center gap-2.5">
+                        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${cfg.dot}`} />
+                        <span className="flex-1 text-sm text-slate-700 truncate">{p.name}</span>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${cfg.pill}`}>{cfg.label}</span>
                       </div>
-                      <div className="h-1.5 bg-white/60 rounded-full overflow-hidden">
-                        <div className={`h-full rounded-full ${cfg.bar} transition-all duration-700`}
-                          style={{ width: revealed ? `${cfg.pct}%` : '0%' }} />
-                      </div>
-                      {p.note && <p className="text-[11px] text-slate-500 mt-1 leading-snug">{p.note}</p>}
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Footer */}
               <div className="px-5 py-2.5 border-t border-slate-100 bg-slate-50 flex items-center justify-between">
-                <p className="text-[10px] text-slate-400 italic">Powered by Gemini · Entertainment only</p>
+                <p className="text-[10px] text-slate-400 italic">Gemini · Entertainment only</p>
                 <button onClick={onClose} className="px-3 py-1.5 rounded-lg bg-[#1B4332] text-white text-xs font-bold hover:bg-[#2D6A4F] transition-colors">
                   Done
                 </button>
