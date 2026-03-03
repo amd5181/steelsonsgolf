@@ -1093,42 +1093,30 @@ class TeamAnalysisRequest(BaseModel):
 @api_router.post("/analyze-team")
 async def analyze_team(request: TeamAnalysisRequest):
     golfer_lines = "\n".join([
-        f"  • {g['name']}  |  World Rank: #{g.get('world_ranking', 'N/A')}  |  Salary: ${g.get('price', 0):,}"
+        f"  {g['name']} (Rank #{g.get('world_ranking', 'N/A')}, Salary ${g.get('price', 0):,})"
         for g in request.golfers
     ])
 
-    prompt = f"""You are an elite PGA Tour historian and fantasy golf strategist with encyclopedic knowledge of every professional golfer's career statistics, course history, head-to-head records, and real-time performance trends.
+    prompt = f"""You are an elite PGA Tour historian and fantasy golf expert. Analyze this fantasy golf team for {request.tournament_name}.
 
-Analyze the following fantasy golf team for the **{request.tournament_name}**:
-
-SELECTED ROSTER:
+ROSTER:
 {golfer_lines}
 
-SCORING SYSTEM (critical context for your analysis):
-• Players who MISS THE CUT score zero points — cut risk is the single biggest liability
-• Finishing position earns exponential points: 1st=300pts, 2nd=200pts, 3rd=175pts, 4th=150pts, 5th=125pts, 6th=100pts, then decreasing
-• Having all 5 players make the cut and perform well is the foundation of a winning team
-• There is a massive multiplier bonus if any of your 5 players WINS the tournament — selecting the winner is the ultimate edge
-• Salary reflects current form and betting odds — premium players are favorites, but value picks can overperform
+SCORING RULES: Missing the cut = zero points. Top finishes earn massive points (1st=300, 2nd=200, 3rd=175...). All 5 making the cut is essential. Picking the winner provides exponential leverage.
 
-Provide a sharp, expert analysis structured exactly as follows:
-
-**PLAYER BREAKDOWN**
-For each of the 5 players (2–3 sentences each): course history at this venue, current world ranking trajectory, recent form, and cut-risk assessment.
-
-**TEAM STRENGTHS**
-What does this roster do exceptionally well? Who are the floor anchors? Who has legitimate win upside this week?
-
-**RISK FACTORS**
-Where could this team collapse? Who is the biggest cut risk? Any injury concerns, fatigue, or worrying recent trends?
-
-**COURSE FIT**
-How does each player's game profile (driving, iron play, putting, scrambling) align with this course's specific demands?
-
-**STRATEGIC VERDICT**
-Classify this team (high-ceiling aggressive / safe floor-first / balanced). What specific scenarios must unfold for this lineup to win the contest? Give an honest overall grade.
-
-Be direct, data-driven, and brutally honest. Use real PGA Tour statistics and historical context."""
+Respond ONLY with a valid JSON object in this exact format, no markdown, no explanation outside the JSON:
+{{
+  "summary": "3-4 sentence honest team assessment covering overall ceiling, floor, and key storyline to watch",
+  "players": [
+    {{"name": "Player Name", "risk": "low|medium|high", "note": "One sharp sentence on their cut risk and upside"}},
+    {{"name": "Player Name", "risk": "low|medium|high", "note": "One sharp sentence on their cut risk and upside"}},
+    {{"name": "Player Name", "risk": "low|medium|high", "note": "One sharp sentence on their cut risk and upside"}},
+    {{"name": "Player Name", "risk": "low|medium|high", "note": "One sharp sentence on their cut risk and upside"}},
+    {{"name": "Player Name", "risk": "low|medium|high", "note": "One sharp sentence on their cut risk and upside"}}
+  ],
+  "grade": "A|A-|B+|B|B-|C+|C|C-|D",
+  "grade_note": "One sentence explaining the grade"
+}}"""
 
     try:
         client = google_genai.Client(api_key=GEMINI_API_KEY)
@@ -1137,7 +1125,14 @@ Be direct, data-driven, and brutally honest. Use real PGA Tour statistics and hi
             model="gemini-2.5-flash",
             contents=prompt,
         )
-        return {"analysis": response.text}
+        raw = response.text.strip()
+        # Strip markdown code fences if Gemini wraps the JSON
+        if raw.startswith("```"):
+            raw = re.sub(r"^```[a-z]*\n?", "", raw)
+            raw = re.sub(r"\n?```$", "", raw.strip())
+        import json
+        parsed = json.loads(raw)
+        return parsed
     except Exception as e:
         logger.error(f"Gemini analysis error: {e}")
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")

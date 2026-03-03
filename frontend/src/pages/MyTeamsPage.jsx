@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 import axios from 'axios';
 import { API, useAuth } from '../App';
@@ -6,7 +6,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
 import { ScrollArea } from '../components/ui/scroll-area';
-import { Search, Minus, Trash2, Save, DollarSign, Loader2, AlertTriangle, Lock, LogIn, Sparkles, X, ChevronRight } from 'lucide-react';
+import { Search, Minus, Trash2, Save, DollarSign, Loader2, AlertTriangle, Lock, LogIn, Sparkles, X } from 'lucide-react';
 import AuthModal from '../components/AuthModal';
 import PaymentBanner from '../components/PaymentBanner';
 
@@ -40,36 +40,18 @@ function getDefaultTournamentSlot(tournaments) {
 
 const EMPTY_TEAM = [null, null, null, null, null];
 
-// Simple markdown renderer for the AI analysis
-function renderAnalysis(text) {
-  if (!text) return [];
-  const lines = text.split('\n');
-  return lines.map((line, i) => {
-    // Bold headers like **PLAYER BREAKDOWN**
-    if (/^\*\*(.+)\*\*$/.test(line.trim())) {
-      const header = line.trim().replace(/^\*\*|\*\*$/g, '');
-      return <div key={i} className="mt-5 mb-2 first:mt-0">
-        <span className="inline-flex items-center gap-1.5 text-[#1B4332] font-heading font-extrabold text-sm uppercase tracking-wider border-b-2 border-[#1B4332]/20 pb-1">
-          <ChevronRight className="w-3.5 h-3.5" />{header}
-        </span>
-      </div>;
-    }
-    // Bullet points starting with •
-    if (/^[•\-\*]\s/.test(line.trim())) {
-      const content = line.trim().replace(/^[•\-\*]\s/, '');
-      return <div key={i} className="flex gap-2 text-sm text-slate-700 leading-relaxed py-0.5">
-        <span className="text-[#2D6A4F] font-bold mt-0.5 flex-shrink-0">•</span>
-        <span dangerouslySetInnerHTML={{ __html: content.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>') }} />
-      </div>;
-    }
-    // Inline bold within regular text
-    if (line.trim()) {
-      return <p key={i} className="text-sm text-slate-700 leading-relaxed py-0.5"
-        dangerouslySetInnerHTML={{ __html: line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>') }} />;
-    }
-    return <div key={i} className="h-1.5" />;
-  });
-}
+const RISK_CONFIG = {
+  low:    { label: 'Low Risk',    bar: 'bg-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-50',  pct: 25 },
+  medium: { label: 'Medium Risk', bar: 'bg-amber-400',   text: 'text-amber-700',  bg: 'bg-amber-50',    pct: 60 },
+  high:   { label: 'High Risk',   bar: 'bg-red-500',     text: 'text-red-700',    bg: 'bg-red-50',      pct: 90 },
+};
+
+const GRADE_COLOR = {
+  'A': 'text-emerald-600', 'A-': 'text-emerald-600',
+  'B+': 'text-teal-600',   'B':  'text-teal-600',   'B-': 'text-teal-600',
+  'C+': 'text-amber-600',  'C':  'text-amber-600',  'C-': 'text-amber-600',
+  'D':  'text-red-600',
+};
 
 // Golf ball loading animation
 function GolfBallLoader() {
@@ -108,14 +90,12 @@ function GolfBallLoader() {
 }
 
 // Analysis modal
-function AnalysisModal({ open, onClose, loading, analysis, error, tournamentName, team }) {
-  const contentRef = useRef(null);
+function AnalysisModal({ open, onClose, loading, analysis, error, tournamentName }) {
   const [revealed, setRevealed] = useState(false);
 
   useEffect(() => {
     if (!loading && analysis) {
-      // Brief delay so the transition feels intentional
-      const t = setTimeout(() => setRevealed(true), 100);
+      const t = setTimeout(() => setRevealed(true), 80);
       return () => clearTimeout(t);
     } else {
       setRevealed(false);
@@ -124,78 +104,89 @@ function AnalysisModal({ open, onClose, loading, analysis, error, tournamentName
 
   if (!open) return null;
 
+  const gradeColor = analysis ? (GRADE_COLOR[analysis.grade] || 'text-slate-700') : '';
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      {/* Backdrop */}
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
 
-      {/* Modal card */}
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[88vh] flex flex-col overflow-hidden
-        animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
 
         {/* Header */}
-        <div className="bg-gradient-to-r from-[#1B4332] to-[#2D6A4F] px-5 py-4 flex items-center justify-between flex-shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-yellow-300" />
-            </div>
+        <div className="bg-gradient-to-r from-[#1B4332] to-[#2D6A4F] px-5 py-3.5 flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-yellow-300" />
             <div>
               <p className="text-white font-heading font-extrabold text-sm uppercase tracking-wider">AI Team Analysis</p>
               {tournamentName && <p className="text-white/60 text-xs">{tournamentName}</p>}
             </div>
           </div>
-          <button onClick={onClose}
-            className="text-white/60 hover:text-white transition-colors rounded-lg p-1 hover:bg-white/10">
-            <X className="w-5 h-5" />
+          <button onClick={onClose} className="text-white/60 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10">
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Team pills */}
-        {team && team.length > 0 && (
-          <div className="px-5 py-2.5 bg-[#1B4332]/5 border-b border-[#1B4332]/10 flex flex-wrap gap-1.5 flex-shrink-0">
-            {team.map((g, i) => g && (
-              <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white border border-[#1B4332]/20 text-xs font-semibold text-[#1B4332] shadow-sm">
-                #{g.world_ranking || '?'} {g.name}
-              </span>
-            ))}
-          </div>
-        )}
-
-        {/* Content area */}
-        <div className="flex-1 overflow-y-auto" ref={contentRef}>
+        {/* Content */}
+        <div className="overflow-y-auto">
           {loading && <GolfBallLoader />}
 
           {!loading && error && (
             <div className="p-6 text-center">
-              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-3">
-                <AlertTriangle className="w-6 h-6 text-red-500" />
-              </div>
-              <p className="text-slate-700 font-semibold">Analysis Failed</p>
-              <p className="text-slate-500 text-sm mt-1">{error}</p>
-              <button onClick={onClose} className="mt-4 px-4 py-2 rounded-lg bg-slate-100 text-slate-600 text-sm font-semibold hover:bg-slate-200 transition-colors">
-                Close
-              </button>
+              <AlertTriangle className="w-8 h-8 text-red-400 mx-auto mb-2" />
+              <p className="text-slate-600 font-semibold text-sm">Analysis Failed</p>
+              <p className="text-slate-400 text-xs mt-1">{error}</p>
             </div>
           )}
 
           {!loading && analysis && (
-            <div className={`px-5 py-4 transition-all duration-500 ${revealed ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
-              {renderAnalysis(analysis)}
+            <div className={`transition-all duration-500 ${revealed ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'}`}>
+
+              {/* Grade + summary */}
+              <div className="px-5 pt-4 pb-3 flex gap-4 items-start">
+                <div className="flex-shrink-0 text-center">
+                  <div className={`text-4xl font-heading font-extrabold leading-none ${gradeColor}`}>{analysis.grade}</div>
+                  <div className="text-[10px] text-slate-400 mt-0.5 uppercase tracking-wide">Grade</div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-slate-700 leading-relaxed">{analysis.summary}</p>
+                  {analysis.grade_note && (
+                    <p className="text-xs text-slate-400 italic mt-1.5">{analysis.grade_note}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Player risk bars */}
+              <div className="px-5 pb-4 space-y-2">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Cut Risk by Player</p>
+                {analysis.players?.map((p, i) => {
+                  const cfg = RISK_CONFIG[p.risk] || RISK_CONFIG.medium;
+                  return (
+                    <div key={i} className={`rounded-lg px-3 py-2 ${cfg.bg}`}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-semibold text-slate-700 truncate mr-2">{p.name}</span>
+                        <span className={`text-[10px] font-bold uppercase tracking-wide flex-shrink-0 ${cfg.text}`}>{cfg.label}</span>
+                      </div>
+                      <div className="h-1.5 bg-white/60 rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full ${cfg.bar} transition-all duration-700`}
+                          style={{ width: revealed ? `${cfg.pct}%` : '0%' }} />
+                      </div>
+                      {p.note && <p className="text-[11px] text-slate-500 mt-1 leading-snug">{p.note}</p>}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Footer */}
+              <div className="px-5 py-2.5 border-t border-slate-100 bg-slate-50 flex items-center justify-between">
+                <p className="text-[10px] text-slate-400 italic">Powered by Gemini · Entertainment only</p>
+                <button onClick={onClose} className="px-3 py-1.5 rounded-lg bg-[#1B4332] text-white text-xs font-bold hover:bg-[#2D6A4F] transition-colors">
+                  Done
+                </button>
+              </div>
             </div>
           )}
         </div>
-
-        {/* Footer */}
-        {!loading && analysis && (
-          <div className="px-5 py-3 border-t border-slate-100 bg-slate-50 flex items-center justify-between flex-shrink-0">
-            <p className="text-xs text-slate-400 italic">Powered by Google Gemini · For entertainment purposes</p>
-            <button onClick={onClose}
-              className="px-4 py-1.5 rounded-lg bg-[#1B4332] text-white text-xs font-bold hover:bg-[#2D6A4F] transition-colors">
-              Close
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -319,7 +310,7 @@ export default function MyTeamsPage() {
   const handleAnalyze = async () => {
     const filledTeam = currentTeam.filter(Boolean);
     if (filledTeam.length < 5) { toast.error('Fill all 5 slots to analyze your team'); return; }
-    setAnalysisText('');
+    setAnalysisText(null);
     setAnalysisError('');
     setAnalysisOpen(true);
     setAnalysisLoading(true);
@@ -328,7 +319,7 @@ export default function MyTeamsPage() {
         golfers: filledTeam,
         tournament_name: tournament?.name || 'this tournament',
       });
-      setAnalysisText(res.data.analysis);
+      setAnalysisText(res.data);
     } catch (e) {
       setAnalysisError(e.response?.data?.detail || 'Something went wrong. Please try again.');
     } finally {
@@ -602,7 +593,6 @@ export default function MyTeamsPage() {
         analysis={analysisText}
         error={analysisError}
         tournamentName={tournament?.name}
-        team={currentTeam}
       />
     </div>
   );
