@@ -542,8 +542,8 @@ export default function HomePage() {
 
   return (
     <div className="p-4 md:p-8 max-w-5xl mx-auto animate-fade-in-up" data-testid="tournament-grid">
-      {/* Mobile-only logo header */}
-      <div className="flex min-[860px]:hidden items-center gap-3 mb-5">
+      {/* Logo header */}
+      <div className="flex items-center gap-3 mb-5">
         <img
           src="https://res.cloudinary.com/dsvpfi9te/image/upload/v1771700941/ChatGPT_Image_Feb_21_2026_02_07_41_PM_kzc10a.png"
           alt="Steel Sons Golf"
@@ -551,8 +551,7 @@ export default function HomePage() {
         />
         <div className="flex flex-col leading-none">
           <span className="text-[11px] font-bold text-slate-400 tracking-[0.2em] uppercase">Steel Sons Golf</span>
-          <span className="text-xl font-extrabold text-[#1B4332] tracking-tight leading-tight">Blast Furnace</span>
-          <span className="text-xl font-extrabold text-[#1B4332] tracking-tight leading-tight">of Champions</span>
+          <span className="text-xl font-extrabold text-[#1B4332] tracking-tight leading-tight whitespace-nowrap">Blast Furnace of Champions</span>
         </div>
       </div>
 
