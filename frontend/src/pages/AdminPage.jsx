@@ -37,9 +37,15 @@ function StatsModal({ open, tournament, teams, onClose }) {
   const contrarian = ownership.filter(p => p.pct > 0 && p.pct <= 15);
 
   // Left on the board — most expensive players with 0 selections
-  const leftOnBoard = (tournament?.golfers || [])
-    .filter(g => g.price && !ownershipMap[g.name])
-    .sort((a, b) => (b.price || 0) - (a.price || 0))
+  // Rank all golfers by price so we can show their field ranking (e.g. #5, #10)
+  const rankedField = [...(tournament?.golfers || [])]
+    .filter(g => g.price)
+    .sort((a, b) => (b.price || 0) - (a.price || 0));
+  const fieldRankMap = {};
+  rankedField.forEach((g, i) => { fieldRankMap[g.name] = i + 1; });
+
+  const leftOnBoard = rankedField
+    .filter(g => !ownershipMap[g.name])
     .slice(0, 5);
 
   return (
@@ -141,7 +147,7 @@ function StatsModal({ open, tournament, teams, onClose }) {
                 {leftOnBoard.map((g, i) => (
                   <div key={i} className="flex items-center justify-between px-3 py-2 bg-rose-50 border border-rose-100 rounded-lg">
                     <div className="flex items-center gap-2.5">
-                      <span className="text-[10px] font-bold text-rose-300 w-4">{i + 1}</span>
+                      <span className="text-[10px] font-bold text-rose-300 w-4">#{fieldRankMap[g.name]}</span>
                       <span className="text-sm font-medium text-slate-700">{g.name}</span>
                     </div>
                     <span className="font-numbers font-bold text-sm text-rose-500">{fmt(g.price)}</span>
