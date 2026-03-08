@@ -259,8 +259,10 @@ async def espn_get_field(event_id, event_date=None):
             linescore_text = ' '.join(str(ls.get('displayValue', '')) for ls in c.get('linescores', []))
             combined_text = f"{score_str} {status_name} {status_desc} {status_short} {linescore_text}".upper()
             is_cut_by_text = 'CUT' in combined_text
-            is_cut = is_cut_by_text
-            
+            is_wd_by_text = any(w in combined_text for w in ('WD', 'WITHDREW', 'WITHDRAW'))
+            is_cut = is_cut_by_text or is_wd_by_text
+            is_wd = is_wd_by_text
+
             golfers.append({
                 'espn_id': str(ath.get('id', c.get('id', ''))),
                 'name': ath.get('fullName', ath.get('displayName', '')),
@@ -270,6 +272,7 @@ async def espn_get_field(event_id, event_date=None):
                 'score_int': parse_score(score_str),
                 'rounds': rounds,
                 'is_cut': is_cut,
+                'is_wd': is_wd,
                 'status': c.get('status', {}).get('type', {}).get('name', '') if isinstance(c.get('status'), dict) else '',
                 'thru': str(c.get('status', {}).get('thru', '')) if isinstance(c.get('status'), dict) else ''
             })
@@ -289,7 +292,7 @@ async def espn_get_field(event_id, event_date=None):
             # then anyone with only 2 rounds is cut
             if max_rounds >= 3:
                 for g in golfers:
-                    if len(g['rounds']) == 2:
+                    if len(g['rounds']) == 2 and not g.get('is_wd'):
                         g['is_cut'] = True
         
         return golfers, data
@@ -927,16 +930,22 @@ async def get_leaderboard(tournament_id: str):
                         sb = None
                         if g.get("score_int") is not None and leader_score is not None and not g.get("is_cut"):
                             sb = g["score_int"] - leader_score
-                        # Store "CUT" for total_score if player is cut
-                        display_score = "CUT" if g.get("is_cut") else g["score"]
-                        # Only show first 2 rounds for cut players
-                        display_rounds = g["rounds"][:2] if g.get("is_cut") else g["rounds"]
-                        
+                        # Display "WD" for withdrawals, "CUT" for missed cuts, score otherwise
+                        if g.get("is_wd"):
+                            display_score = "WD"
+                        elif g.get("is_cut"):
+                            display_score = "CUT"
+                        else:
+                            display_score = g["score"]
+                        # Only show first 2 rounds for cut (not WD) players; WD may have mid-round data
+                        display_rounds = g["rounds"][:2] if g.get("is_cut") and not g.get("is_wd") else g["rounds"]
+
                         scores.append({
                             "espn_id": g["espn_id"], "name": g["name"], "position": str(g["order"]),
                             "total_score": display_score, "score_int": g.get("score_int"),
                             "rounds": display_rounds,
                             "thru": g.get("thru",""), "is_cut": g.get("is_cut",False),
+                            "is_wd": g.get("is_wd",False),
                             "is_active": "PROGRESS" in str(g.get("status","")).upper(),
                             "strokes_behind": sb if sb is not None else 999, "sort_order": g["order"]
                         })
@@ -986,12 +995,18 @@ async def get_leaderboard(tournament_id: str):
                     pp = 0
                     sp = 0
                     tot = 0
-                    position = sd.get("position","CUT") if sd.get("is_cut") else sd.get("position","-")
+                    if sd.get("is_wd"):
+                        position = "WD"
+                    elif sd.get("is_cut"):
+                        position = sd.get("position", "CUT")
+                    else:
+                        position = sd.get("position", "-")
                     sb_val = sd.get("strokes_behind", 0)
-                
+
                 gd.append({**golfer, "position": position, "total_score": sd.get("total_score",""),
                           "rounds": sd.get("rounds",[]), "thru": sd.get("thru",""),
                           "is_active": sd.get("is_active",False), "is_cut": sd.get("is_cut",False),
+                          "is_wd": sd.get("is_wd",False),
                           "strokes_behind": sb_val, "place_points": round(pp, 1), "stroke_points": sp,
                           "total_points": round(tot, 1), "sort_order": sd.get("sort_order", 999)})
                 tp += tot
@@ -1041,11 +1056,19 @@ async def manual_refresh(tournament_id: str, user_id: Optional[str] = Query(None
         sb = None
         if g.get("score_int") is not None and leader_score is not None and not g.get("is_cut"):
             sb = g["score_int"] - leader_score
+        if g.get("is_wd"):
+            display_score = "WD"
+        elif g.get("is_cut"):
+            display_score = "CUT"
+        else:
+            display_score = g["score"]
+        display_rounds = g["rounds"][:2] if g.get("is_cut") and not g.get("is_wd") else g["rounds"]
         scores_list.append({
             "espn_id": g["espn_id"], "name": g["name"], "position": str(g["order"]),
-            "total_score": g["score"], "score_int": g.get("score_int"),
-            "rounds": g["rounds"],
+            "total_score": display_score, "score_int": g.get("score_int"),
+            "rounds": display_rounds,
             "thru": g.get("thru",""), "is_cut": g.get("is_cut",False),
+            "is_wd": g.get("is_wd",False),
             "is_active": "PROGRESS" in str(g.get("status","")).upper(),
             "strokes_behind": sb if sb is not None else 999, "sort_order": g["order"]
         })

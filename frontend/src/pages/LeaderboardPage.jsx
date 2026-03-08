@@ -12,6 +12,7 @@ const abbrevName = (name) => {
 };
 
 const renderThruCell = (golfer) => {
+  if (golfer.is_wd) return <span className="text-red-400 font-bold text-[10px]">WD</span>;
   if (golfer.is_cut) return <span className="text-red-400 font-bold text-[10px]">CUT</span>;
   const thru = golfer.thru?.toString() || '';
   if (golfer.is_active) {
@@ -28,9 +29,10 @@ const renderThruCell = (golfer) => {
   return <span className="text-slate-300 text-xs">—</span>;
 };
 
-// Normalize CUT players so initial load matches manual refresh behavior:
-// - Convert total_score "CUT" to actual score using score_int
-// - Trim rounds to first 2 (rounds 3+4 show as CUT via renderRounds)
+// Normalize CUT/WD players so initial load matches manual refresh behavior:
+// - Convert total_score "CUT"/"WD" to actual score using score_int
+// - Trim rounds to first 2 for CUT players (rounds 3+4 show as CUT via renderRounds)
+// - WD players keep all rounds (they may have withdrawn mid-round 3+)
 function normalizeCutPlayers(data) {
   if (!data?.team_standings) return data;
   return {
@@ -49,8 +51,10 @@ function normalizeCutPlayers(data) {
             : total_score > 0 ? `+${total_score}`
             : String(total_score);
         }
-        // if total_score is still 'CUT' or empty at this point, leave it as-is
-        return { ...g, total_score, rounds: (g.rounds || []).slice(0, 2) };
+        // if total_score is still 'CUT'/'WD' or empty at this point, leave it as-is
+        // WD players keep all rounds; CUT players trim to 2
+        const rounds = g.is_wd ? (g.rounds || []) : (g.rounds || []).slice(0, 2);
+        return { ...g, total_score, rounds };
       })
     }))
   };
@@ -165,7 +169,7 @@ export default function LeaderboardPage() {
 
   const renderRounds = (golfer) => {
     const rounds = golfer.rounds || [];
-    const isCut = golfer.is_cut;
+    const isCut = golfer.is_cut && !golfer.is_wd;
     return Array.from({ length: 4 }, (_, ri) => {
       const round = rounds[ri];
       const hasScore = round && round.score && round.score !== '-' && round.score !== '';
@@ -372,7 +376,7 @@ export default function LeaderboardPage() {
                           {team.golfers.map((g, i) => (
                             <div key={i} className="flex items-center px-4 py-1.5 text-xs">
                               <span className={`hidden sm:block w-10 font-numbers font-bold flex-shrink-0 ${g.is_cut ? 'text-red-400' : g.is_active ? 'text-green-500 pulse-active' : 'text-slate-500'}`}>
-                                {g.is_cut ? 'CUT' : g.position || '-'}{g.is_active && !g.is_cut && '*'}
+                                {g.is_wd ? 'WD' : g.is_cut ? 'CUT' : g.position || '-'}{g.is_active && !g.is_cut && '*'}
                               </span>
                               <span className="flex-1 font-medium text-[#0F172A] truncate min-w-0 mr-1">
                                 <span className="sm:hidden">{abbrevName(g.name)}</span>
