@@ -31,21 +31,19 @@ export default function Layout() {
 
         <header className="fixed top-0 left-0 right-0 z-50 glass shadow-sm h-16 flex items-center px-3 min-[860px]:px-6" data-testid="top-nav">
 
-          {/* Logo — always navigates home */}
-          <div className="flex items-center gap-2 cursor-pointer flex-shrink-0" onClick={() => navigate('/home')}>
+          {/* ── Desktop nav (860px+): logo + icon+label buttons ── */}
+          <div className="hidden min-[860px]:flex items-center gap-2 cursor-pointer flex-shrink-0" onClick={() => navigate('/home')}>
             <img
               src="https://res.cloudinary.com/dsvpfi9te/image/upload/v1771700941/ChatGPT_Image_Feb_21_2026_02_07_41_PM_kzc10a.png"
               alt="Steel Sons Golf"
-              className="h-8 w-8 min-[860px]:h-10 min-[860px]:w-10 object-contain"
+              className="h-10 w-10 object-contain"
             />
-            {/* Hide tagline below 860px — logo is enough */}
-            <div className="hidden min-[860px]:flex flex-col leading-none">
+            <div className="flex flex-col leading-none">
               <span className="text-[10px] font-bold text-[#1B4332] tracking-wider">BLAST FURNACE</span>
               <span className="text-[10px] font-bold text-[#1B4332] tracking-wider">OF CHAMPIONS</span>
             </div>
           </div>
 
-          {/* ── Desktop nav (860px+): icon + label, horizontal ── */}
           <nav className="hidden min-[860px]:flex items-center gap-0.5 ml-auto">
             {allItems.map(item => {
               const active = location.pathname === item.path;
@@ -91,37 +89,35 @@ export default function Layout() {
             )}
           </nav>
 
-          {/* ── Mobile nav (<860px): icon + tiny label, no Home (logo = home) ── */}
-          <nav className="flex min-[860px]:hidden items-center ml-auto">
-            {allItems.filter(item => item.path !== '/home').map(item => {
+          {/* ── Mobile nav (<860px): all icons evenly spaced, full width ── */}
+          <nav className="flex min-[860px]:hidden items-center justify-evenly w-full">
+            {allItems.map(item => {
               const active = location.pathname === item.path;
               return (
                 <button
                   key={item.path}
                   data-testid={`nav-${item.label.toLowerCase().replace(/\s/g, '-')}`}
                   onClick={() => navigate(item.path)}
-                  className={`flex flex-col items-center justify-center gap-0.5 px-2.5 py-1.5 rounded-xl transition-all ${
+                  className={`flex flex-col items-center justify-center gap-0.5 px-2 py-1.5 rounded-xl transition-all ${
                     active ? 'bg-[#1B4332] text-white' : 'text-slate-500 hover:bg-slate-100'
                   }`}
                 >
-                  <item.icon className={`w-4 h-4 flex-shrink-0 ${active ? 'stroke-[2.5]' : ''}`} />
-                  <span className="text-[9px] font-semibold leading-none">{item.shortLabel}</span>
+                  <item.icon className={`w-5 h-5 flex-shrink-0 ${active ? 'stroke-[2.5]' : ''}`} />
+                  <span className="text-[9px] font-semibold leading-none">{item.shortLabel || item.label}</span>
                 </button>
               );
             })}
 
-            <div className="w-px h-5 bg-slate-200 mx-1" />
-
             {user ? (
               <button data-testid="nav-profile" onClick={() => setProfileOpen(true)}
-                className="flex flex-col items-center justify-center gap-0.5 px-2.5 py-1.5 rounded-xl text-slate-500 hover:bg-slate-100 transition-all">
-                <UserCog className="w-4 h-4" />
+                className="flex flex-col items-center justify-center gap-0.5 px-2 py-1.5 rounded-xl text-slate-500 hover:bg-slate-100 transition-all">
+                <UserCog className="w-5 h-5" />
                 <span className="text-[9px] font-semibold leading-none">Profile</span>
               </button>
             ) : (
               <button data-testid="nav-signin" onClick={() => setAuthOpen(true)}
-                className="flex flex-col items-center justify-center gap-0.5 px-2.5 py-1.5 rounded-xl bg-[#1B4332] text-white hover:bg-[#2D6A4F] transition-all">
-                <LogIn className="w-4 h-4" />
+                className="flex flex-col items-center justify-center gap-0.5 px-2 py-1.5 rounded-xl text-[#1B4332] hover:bg-slate-100 transition-all">
+                <LogIn className="w-5 h-5" />
                 <span className="text-[9px] font-semibold leading-none">Sign In</span>
               </button>
             )}
