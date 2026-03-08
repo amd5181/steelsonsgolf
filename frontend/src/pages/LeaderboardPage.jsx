@@ -178,6 +178,7 @@ export default function LeaderboardPage() {
         const isCurrentRound = golfer.is_active && ri === rounds.length - 1;
         return <span key={ri} className={`w-6 text-center font-numbers text-[10px] ${isCurrentRound ? 'text-green-600 font-bold' : 'text-slate-400'}`}>{round.score}</span>;
       }
+      if (golfer.is_wd) return <span key={ri} className="w-6 text-center font-numbers text-[10px] text-red-400 font-bold">WD</span>;
       return <span key={ri} className="w-6 text-center font-numbers text-[10px] text-slate-200">-</span>;
     });
   };
