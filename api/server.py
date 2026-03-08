@@ -232,20 +232,32 @@ async def espn_get_field(event_id, event_date=None):
         if not comps:
             return [], data
         comp = comps[0]
+        def is_real_ls(ls):
+            # A linescore has real data if it has a non-dash display value,
+            # a non-zero stroke count, or nested hole-by-hole data.
+            # ESPN adds placeholder stubs (displayValue="-", value=0, no holes)
+            # for WD players' unplayed rounds — we exclude those from the round list.
+            return (
+                ls.get('displayValue', '-') != '-'
+                or (ls.get('value') or 0.0) > 0
+                or bool(ls.get('linescores'))
+            )
+
         golfers = []
         for c in comp.get('competitors', []):
             ath = c.get('athlete', {})
+            all_ls = c.get('linescores', [])
+            real_ls = [ls for ls in all_ls if is_real_ls(ls)]
+            has_placeholder_rounds = len(all_ls) > len(real_ls) and len(real_ls) > 0
             rounds = []
-            for ls in c.get('linescores', []):
+            for ls in real_ls:
                 rounds.append({
                     'round': ls.get('period', 0),
                     'score': ls.get('displayValue', ''),
                     'strokes': ls.get('value', None)
                 })
             score_str = str(c.get('score', ''))
-            # Detect cuts: Check if word "CUT" appears in any relevant ESPN field,
-            # since ESPN may place "CUT" in the score, status type, status description,
-            # or individual linescore displayValues depending on the tournament/round state.
+            # Text-based detection: check if WD/CUT words appear in any ESPN field.
             status_obj = c.get('status', {})
             status_name = ''
             status_desc = ''
@@ -256,7 +268,7 @@ async def espn_get_field(event_id, event_date=None):
                     status_name = str(type_obj.get('name', ''))
                     status_desc = str(type_obj.get('description', ''))
                     status_short = str(type_obj.get('shortDetail', ''))
-            linescore_text = ' '.join(str(ls.get('displayValue', '')) for ls in c.get('linescores', []))
+            linescore_text = ' '.join(str(ls.get('displayValue', '')) for ls in all_ls)
             combined_text = f"{score_str} {status_name} {status_desc} {status_short} {linescore_text}".upper()
             is_cut_by_text = 'CUT' in combined_text
             is_wd_by_text = any(w in combined_text for w in ('WD', 'WITHDREW', 'WITHDRAW'))
@@ -273,27 +285,34 @@ async def espn_get_field(event_id, event_date=None):
                 'rounds': rounds,
                 'is_cut': is_cut,
                 'is_wd': is_wd,
+                'has_placeholder_rounds': has_placeholder_rounds,
                 'status': c.get('status', {}).get('type', {}).get('name', '') if isinstance(c.get('status'), dict) else '',
                 'thru': str(c.get('status', {}).get('thru', '')) if isinstance(c.get('status'), dict) else ''
             })
-        
-        # Second pass: Detect cuts by round count
-        # If most players have 3+ rounds and some have only 2, those with 2 are cut
+
+        # Second pass: Detect cuts/WDs by round count.
+        # Count only "real" rounds (placeholders already stripped above).
+        # If the tournament has progressed to R3+:
+        #   - Players with fewer real rounds than leaders AND placeholder rounds in ESPN → WD
+        #   - Players with exactly 2 real rounds and no placeholder rounds → CUT (missed cut)
         if golfers:
             round_counts = {}
             for g in golfers:
                 rc = len(g['rounds'])
                 round_counts[rc] = round_counts.get(rc, 0) + 1
-            
-            # Find the maximum round count (what the leaders have)
+
             max_rounds = max(round_counts.keys()) if round_counts else 0
-            
-            # If tournament has progressed beyond round 2 (i.e., max_rounds >= 3)
-            # then anyone with only 2 rounds is cut
+
             if max_rounds >= 3:
                 for g in golfers:
-                    if len(g['rounds']) == 2 and not g.get('is_wd'):
-                        g['is_cut'] = True
+                    if not g.get('is_cut') and len(g['rounds']) < max_rounds:
+                        if g.get('has_placeholder_rounds'):
+                            # Has ESPN placeholder stubs for rounds not actually played → WD
+                            g['is_wd'] = True
+                            g['is_cut'] = True
+                        elif len(g['rounds']) == 2:
+                            # Standard missed cut (exactly 2 rounds, no placeholders)
+                            g['is_cut'] = True
         
         return golfers, data
     except Exception as e:
