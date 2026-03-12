@@ -275,6 +275,23 @@ async def espn_get_field(event_id, event_date=None):
             is_cut = is_cut_by_text or is_wd_by_text
             is_wd = is_wd_by_text
 
+            # Derive thru and is_active from nested hole-by-hole linescores.
+            # ESPN's scoreboard API does not return a status.thru field.
+            thru_val = ''
+            is_active_val = False
+            if real_ls:
+                last_round = real_ls[-1]
+                nested_holes = last_round.get('linescores', [])
+                holes_played = len(nested_holes)
+                if holes_played >= 18:
+                    thru_val = 'F'
+                elif holes_played > 0:
+                    thru_val = str(holes_played)
+                    is_active_val = True  # mid-round
+                elif last_round.get('displayValue', '-') != '-':
+                    # Has a round score but no hole-by-hole data — treat as finished
+                    thru_val = 'F'
+
             golfers.append({
                 'espn_id': str(ath.get('id', c.get('id', ''))),
                 'name': ath.get('fullName', ath.get('displayName', '')),
@@ -287,7 +304,8 @@ async def espn_get_field(event_id, event_date=None):
                 'is_wd': is_wd,
                 'has_placeholder_rounds': has_placeholder_rounds,
                 'status': c.get('status', {}).get('type', {}).get('name', '') if isinstance(c.get('status'), dict) else '',
-                'thru': str(c.get('status', {}).get('thru', '')) if isinstance(c.get('status'), dict) else ''
+                'thru': thru_val,
+                'is_active': is_active_val,
             })
 
         # Second pass: Detect cuts/WDs by round count.
@@ -965,7 +983,7 @@ async def get_leaderboard(tournament_id: str):
                             "rounds": display_rounds,
                             "thru": g.get("thru",""), "is_cut": g.get("is_cut",False),
                             "is_wd": g.get("is_wd",False),
-                            "is_active": "PROGRESS" in str(g.get("status","")).upper(),
+                            "is_active": g.get("is_active", False),
                             "strokes_behind": sb if sb is not None else 999, "sort_order": g["order"]
                         })
                     await db.score_cache.update_one(
@@ -1088,7 +1106,7 @@ async def manual_refresh(tournament_id: str, user_id: Optional[str] = Query(None
             "rounds": display_rounds,
             "thru": g.get("thru",""), "is_cut": g.get("is_cut",False),
             "is_wd": g.get("is_wd",False),
-            "is_active": "PROGRESS" in str(g.get("status","")).upper(),
+            "is_active": g.get("is_active", False),
             "strokes_behind": sb if sb is not None else 999, "sort_order": g["order"]
         })
     await db.score_cache.update_one(
