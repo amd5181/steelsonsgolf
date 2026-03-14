@@ -503,7 +503,7 @@ export default function AdminPage() {
       {/* Tournament Slots */}
       <div className="space-y-4 stagger">
         {allSlots.map(t => (
-          <div key={t.slot} className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden animate-fade-in-up"
+          <div key={`${t.slot}-${t.name || ''}-${t.espn_event_id || ''}-${t.golfers?.length || 0}`} className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden animate-fade-in-up"
             data-testid={`admin-slot-${t.slot}`}>
             <div className="bg-gradient-to-r from-[#1B4332] to-[#2D6A4F] px-4 py-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
