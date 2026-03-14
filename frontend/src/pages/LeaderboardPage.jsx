@@ -207,7 +207,10 @@ export default function LeaderboardPage() {
               <span className={`w-7 font-numbers font-bold text-xs flex-shrink-0 ${i < 3 ? 'text-[#CCFF00]' : 'text-white/50'}`}>{g.position || i + 1}</span>
               <span className="flex-1 text-sm font-medium text-white truncate">{g.name}</span>
               {g.is_active && <span className="text-[9px] font-bold text-green-400 flex-shrink-0">LIVE</span>}
-              <span className={`font-numbers font-bold text-sm flex-shrink-0 ${g.total_score?.toString().startsWith('-') ? 'text-[#CCFF00]' : 'text-white/70'}`}>{g.total_score}</span>
+              <div className="flex flex-col items-end flex-shrink-0">
+                <span className={`font-numbers font-bold text-sm ${g.total_score?.toString().startsWith('-') ? 'text-[#CCFF00]' : 'text-white/70'}`}>{g.total_score}</span>
+                {g.fantasy_points > 0 && <span className="font-numbers text-[10px] text-white/40">{g.fantasy_points}pts</span>}
+              </div>
             </div>
           ))}
         </div>

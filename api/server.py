@@ -1082,7 +1082,8 @@ async def get_leaderboard(tournament_id: str):
         name_key = s.get("name","").lower()
         espn_key = s.get("espn_id","")
         tied_data = tied_map.get(name_key) or tied_map.get(espn_key) or {}
-        top25.append({**s, "position": tied_data.get("position", s.get("position",""))})
+        top25.append({**s, "position": tied_data.get("position", s.get("position","")),
+                      "fantasy_points": round(tied_data.get("total_points", 0), 1)})
     return {
         "tournament": {"id": t["id"], "name": t["name"], "status": t.get("status",""),
                        "start_date": t.get("start_date",""), "end_date": t.get("end_date","")},
