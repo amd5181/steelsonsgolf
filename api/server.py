@@ -678,13 +678,25 @@ async def admin_espn_sync_confirm(slot: int, user_id: str = Query(...), body: di
         updated.append({'espn_id': add['espn_id'], 'name': add['espn_name'], 'short_name': '',
                         'world_ranking': len(updated) + 1, 'odds': None, 'price': add.get('price', 0)})
     affected_teams = []
-    if remove_from_site and t.get("id"):
+    if t.get("id") and (remove_from_site or matched):
         teams = await db.teams.find({"tournament_id": t["id"]}, {"_id": 0}).to_list(500)
         for team in teams:
             removed = [g['name'] for g in team.get('golfers', []) if g.get('name') in remove_from_site]
             if removed:
                 affected_teams.append({'user_name': team.get('user_name', ''),
                                        'team_number': team.get('team_number', ''), 'removed_golfers': removed})
+            # Update team golfers with ESPN names and IDs so scoring lookups match
+            new_golfers = []
+            changed = False
+            for g in team.get('golfers', []):
+                link = link_map.get(g.get('name'))
+                if link:
+                    new_golfers.append({**g, 'espn_id': link['espn_id'], 'name': link['espn_name']})
+                    changed = True
+                else:
+                    new_golfers.append(g)
+            if changed:
+                await db.teams.update_one({"id": team["id"]}, {"$set": {"golfers": new_golfers}})
     await db.tournaments.update_one({"slot": slot}, {"$set": {"golfers": updated}})
     return {"success": True, "golfers_count": len(updated), "affected_teams": affected_teams}
 
