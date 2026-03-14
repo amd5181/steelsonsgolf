@@ -614,22 +614,33 @@ export default function AdminPage() {
                 <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">
                   <Calendar className="w-3 h-3 inline mr-1" />Entry Deadline (ET)
                 </label>
-                <Input
-                  type="datetime-local"
-                  data-testid={`deadline-${t.slot}`}
-                  defaultValue={toEasternInput(t.deadline)}
-                  onBlur={e => {
-                    const val = e.target.value;
-                    if (val) {
-                      const isoDate = easternInputToISO(val);
-                      if (isoDate !== t.deadline) {
-                        updateTournament(t.slot, { deadline: isoDate });
-                        toast.success('Deadline updated');
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="datetime-local"
+                    data-testid={`deadline-${t.slot}`}
+                    defaultValue={toEasternInput(t.deadline)}
+                    onBlur={e => {
+                      const val = e.target.value;
+                      if (val) {
+                        const isoDate = easternInputToISO(val);
+                        if (isoDate !== t.deadline) {
+                          updateTournament(t.slot, { deadline: isoDate });
+                          toast.success('Deadline updated');
+                        }
                       }
-                    }
-                  }}
-                  className="h-9 max-w-xs"
-                />
+                    }}
+                    className="h-9 max-w-xs"
+                  />
+                  {t.deadline && (
+                    <button
+                      onClick={() => { updateTournament(t.slot, { deadline: null }); toast.success('Deadline cleared'); }}
+                      className="text-slate-400 hover:text-red-500 transition-colors"
+                      title="Clear deadline"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
                 {t.deadline && (
                   <p className="text-xs text-slate-400 mt-1">
                     Current: {new Date(t.deadline).toLocaleString('en-US', {
