@@ -633,7 +633,7 @@ export default function AdminPage() {
                   />
                   {t.deadline && (
                     <button
-                      onClick={() => { updateTournament(t.slot, { deadline: null }); toast.success('Deadline cleared'); }}
+                      onClick={() => { updateTournament(t.slot, { deadline: '' }); toast.success('Deadline cleared'); }}
                       className="text-slate-400 hover:text-red-500 transition-colors"
                       title="Clear deadline"
                     >
