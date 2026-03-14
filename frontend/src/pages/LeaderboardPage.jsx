@@ -376,7 +376,7 @@ export default function LeaderboardPage() {
                         <div className="divide-y divide-slate-50">
                           {team.golfers.map((g, i) => (
                             <div key={i} className="flex items-center px-4 py-1.5 text-xs">
-                              <span className={`hidden sm:block w-10 font-numbers font-bold flex-shrink-0 ${g.is_cut ? 'text-red-400' : g.is_active ? 'text-green-500 pulse-active' : 'text-slate-500'}`}>
+                              <span className={`hidden sm:block w-10 font-numbers font-bold flex-shrink-0 ${g.is_cut ? 'text-red-400' : 'text-slate-500'}`}>
                                 {g.is_wd ? 'WD' : g.is_cut ? 'CUT' : g.position || '-'}{g.is_active && !g.is_cut && '*'}
                               </span>
                               <span className="flex-1 font-medium text-[#0F172A] truncate min-w-0 mr-1">
