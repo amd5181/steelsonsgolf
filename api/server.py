@@ -311,8 +311,9 @@ async def espn_get_field(event_id, event_date=None):
         # Second pass: Detect cuts/WDs by round count.
         # Count only "real" rounds (placeholders already stripped above).
         # If the tournament has progressed to R3+:
-        #   - Players with fewer real rounds than leaders AND placeholder rounds in ESPN → WD
         #   - Players with exactly 2 real rounds and no placeholder rounds → CUT (missed cut)
+        #   - Players more than one round behind the leader with placeholders → WD
+        #     (being exactly one round behind just means they haven't teed off yet in the current round)
         if golfers:
             round_counts = {}
             for g in golfers:
@@ -324,11 +325,13 @@ async def espn_get_field(event_id, event_date=None):
             if max_rounds >= 3:
                 for g in golfers:
                     if not g.get('is_cut') and len(g['rounds']) < max_rounds:
-                        if g.get('has_placeholder_rounds'):
-                            # Has ESPN placeholder stubs for rounds not actually played → WD
+                        rounds_behind = max_rounds - len(g['rounds'])
+                        if g.get('has_placeholder_rounds') and rounds_behind > 1:
+                            # More than one full round behind with placeholders → WD
+                            # (exactly one round behind = just waiting to tee off in current round)
                             g['is_wd'] = True
                             g['is_cut'] = True
-                        elif len(g['rounds']) == 2:
+                        elif len(g['rounds']) == 2 and not g.get('has_placeholder_rounds'):
                             # Standard missed cut (exactly 2 rounds, no placeholders)
                             g['is_cut'] = True
         
