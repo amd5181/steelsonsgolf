@@ -1056,6 +1056,7 @@ async def get_leaderboard(tournament_id: str):
                     sb_val = sd.get("strokes_behind", 0)
 
                 gd.append({**golfer, "position": position, "total_score": sd.get("total_score",""),
+                          "score_int": sd.get("score_int"),
                           "rounds": sd.get("rounds",[]), "thru": sd.get("thru",""),
                           "is_active": sd.get("is_active",False), "is_cut": sd.get("is_cut",False),
                           "is_wd": sd.get("is_wd",False),
