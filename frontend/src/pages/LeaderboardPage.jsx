@@ -73,7 +73,7 @@ function getDefaultTournamentId(tournaments) {
       if (diff < closestDiff) { closestDiff = diff; closest = t; }
     } catch (e) {}
   });
-  return closest ? closest.id : null;
+  return closest ? closest.id : (tournaments.find(t => t.id)?.id ?? null);
 }
 
 const PaymentDot = ({ paid }) => paid
