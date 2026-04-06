@@ -140,7 +140,7 @@ def calc_prices(golfers):
     for i, g in enumerate(sorted_g):
         g['price'] = max(75000, price)
         g['world_ranking'] = i + 1
-        price -= 5000
+        price -= 3000
     return sorted_g
 
 def parse_score(s):
@@ -563,7 +563,7 @@ async def admin_default_prices(slot: int, user_id: str = Query(...)):
         g["price"] = max(75000, price)
         g["odds"] = g.get("odds") or 999
         g["world_ranking"] = i + 1
-        price -= 5000
+        price -= 3000
     await db.tournaments.update_one({"slot": slot}, {"$set": {"golfers": golfers, "status": "prices_set"}})
     return await db.tournaments.find_one({"slot": slot}, {"_id": 0})
 
