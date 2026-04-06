@@ -102,7 +102,10 @@ export default function MyTeamsPage() {
   const golfers = useMemo(() => {
     if (!tournament?.golfers) return [];
     let list = tournament.golfers.filter(g => g.price);
-    if (search) list = list.filter(g => g.name.toLowerCase().includes(search.toLowerCase()));
+    if (search) {
+      const normalize = s => s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
+      list = list.filter(g => normalize(g.name).includes(normalize(search)));
+    }
     return list.sort((a, b) => (b.price || 0) - (a.price || 0));
   }, [tournament, search]);
 
