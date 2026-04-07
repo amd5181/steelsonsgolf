@@ -6,7 +6,7 @@ export default function PaymentBanner({ compact = false }) {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
       <div>
         <p className={`font-bold text-[#0F172A] ${compact ? 'text-sm' : 'text-base'}`}>
-          Entry Fee: <span className="text-[#1B4332]">$20 / team</span>
+          Entry Fee: <span className="text-[#1B4332]">$25 / team</span>
         </p>
         {!compact && <p className="text-xs text-slate-500 mt-0.5">Pay via Venmo or PayPal after submitting your team(s).</p>}
       </div>
