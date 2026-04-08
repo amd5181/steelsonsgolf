@@ -17,8 +17,6 @@ export const API = `${BACKEND_URL}/api`
 export const AuthContext = createContext(null)
 export function useAuth() { return useContext(AuthContext) }
 
-const INACTIVITY_MS = 2 * 60 * 60 * 1000 // 2 hours
-
 function App() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -31,19 +29,25 @@ function App() {
     setLoading(false)
   }, [])
 
+  // Poll for new deployments every 5 minutes; reload if index.html has changed
   useEffect(() => {
-    let timer
-    const reset = () => {
-      clearTimeout(timer)
-      timer = setTimeout(() => window.location.reload(true), INACTIVITY_MS)
+    const getScriptHash = (html) => {
+      const match = html.match(/src="\/assets\/index-[^"]+\.js"/)
+      return match ? match[0] : null
     }
-    const events = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart', 'click']
-    events.forEach(e => window.addEventListener(e, reset, { passive: true }))
-    reset()
-    return () => {
-      clearTimeout(timer)
-      events.forEach(e => window.removeEventListener(e, reset))
+    let currentHash = null
+    const check = async () => {
+      try {
+        const res = await fetch('/', { cache: 'no-store' })
+        const html = await res.text()
+        const hash = getScriptHash(html)
+        if (currentHash === null) { currentHash = hash; return }
+        if (hash && hash !== currentHash) window.location.reload(true)
+      } catch {}
     }
+    const interval = setInterval(check, 5 * 60 * 1000) // every 5 minutes
+    check()
+    return () => clearInterval(interval)
   }, [])
 
   const login = (u) => { setUser(u); localStorage.setItem('ff_user', JSON.stringify(u)) }
