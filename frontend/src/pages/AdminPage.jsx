@@ -8,7 +8,7 @@ import { Badge } from '../components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
-import { Search, Download, DollarSign, Trash2, Loader2, Users, CheckCircle, ClipboardPaste, FileSpreadsheet, Calendar, Eye, Pencil, X, Mail, Upload, Link2, AlertTriangle, Plus, BarChart2, Zap } from 'lucide-react';
+import { Search, Download, DollarSign, Trash2, Loader2, Users, CheckCircle, ClipboardPaste, FileSpreadsheet, Calendar, Eye, Pencil, X, Mail, Upload, Link2, AlertTriangle, Plus, BarChart2 } from 'lucide-react';
 
 const fmt = (n) => '$' + (n || 0).toLocaleString();
 
@@ -34,7 +34,6 @@ function StatsModal({ open, tournament, teams, onClose }) {
   const cheapest = withCosts[0];
   const avgCost = Math.round(withCosts.reduce((s, t) => s + t.total, 0) / totalTeams);
 
-  const contrarian = ownership.filter(p => p.pct > 0 && p.pct <= 15);
 
   // Left on the board — most expensive players with 0 selections
   // Rank all golfers by price so we can show their field ranking (e.g. #5, #10)
@@ -94,24 +93,6 @@ function StatsModal({ open, tournament, teams, onClose }) {
               ))}
             </div>
           </section>
-
-          {/* Contrarian picks */}
-          {contrarian.length > 0 && (
-            <section>
-              <div className="flex items-center gap-2 mb-2">
-                <Zap className="w-3.5 h-3.5 text-amber-500" />
-                <span className="text-[10px] font-bold tracking-[0.18em] text-slate-400 uppercase">Flying Under the Radar</span>
-                <span className="text-[9px] text-slate-300 ml-0.5">≤15%</span>
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {contrarian.slice(0, 8).map((p, i) => (
-                  <span key={i} className="px-2 py-1 bg-amber-50 border border-amber-100 rounded-lg text-xs text-amber-800">
-                    {p.name} <span className="font-bold">{p.pct}%</span>
-                  </span>
-                ))}
-              </div>
-            </section>
-          )}
 
           {/* Thinnest wallet */}
           <section>
