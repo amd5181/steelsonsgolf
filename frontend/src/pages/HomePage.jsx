@@ -477,12 +477,12 @@ function RecentWinnersCard({ recentChampions }) {
         {recentChampions?.length ? (
           <div className="space-y-2">
             {recentChampions.map((entry, i) => (
-              <div key={i} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg border ${i === 0 ? 'bg-white/10 border-white/20' : 'bg-white/5 border-white/10'}`}>
-                <span className={`font-numbers text-xs font-bold flex-shrink-0 w-8 ${i === 0 ? 'text-yellow-400' : 'text-white/40'}`}>{entry.year}</span>
+              <div key={i} className="flex items-center gap-2.5 px-3 py-2 rounded-lg border bg-white/5 border-white/10">
+                <span className="font-numbers text-xs font-bold flex-shrink-0 w-8 text-yellow-400">{entry.year}</span>
                 <span className="text-white/60 text-xs flex-shrink-0 hidden sm:block">{entry.name}</span>
                 <span className="text-white/60 text-xs flex-shrink-0 sm:hidden truncate max-w-[60px]">{entry.name}</span>
-                <span className={`font-semibold text-sm flex-1 text-right ${i === 0 ? 'text-white' : 'text-white/80'}`}>{entry.champion}</span>
-                {i === 0 && <Trophy className="w-3 h-3 text-yellow-400 flex-shrink-0" />}
+                <span className="font-semibold text-sm flex-1 text-right text-white/80">{entry.champion}</span>
+                <Trophy className="w-3 h-3 text-yellow-400 flex-shrink-0" />
               </div>
             ))}
           </div>
