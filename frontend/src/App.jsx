@@ -17,6 +17,8 @@ export const API = `${BACKEND_URL}/api`
 export const AuthContext = createContext(null)
 export function useAuth() { return useContext(AuthContext) }
 
+const INACTIVITY_MS = 2 * 60 * 60 * 1000 // 2 hours
+
 function App() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -27,6 +29,21 @@ function App() {
       try { setUser(JSON.parse(stored)) } catch {}
     }
     setLoading(false)
+  }, [])
+
+  useEffect(() => {
+    let timer
+    const reset = () => {
+      clearTimeout(timer)
+      timer = setTimeout(() => window.location.reload(true), INACTIVITY_MS)
+    }
+    const events = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart', 'click']
+    events.forEach(e => window.addEventListener(e, reset, { passive: true }))
+    reset()
+    return () => {
+      clearTimeout(timer)
+      events.forEach(e => window.removeEventListener(e, reset))
+    }
   }, [])
 
   const login = (u) => { setUser(u); localStorage.setItem('ff_user', JSON.stringify(u)) }
