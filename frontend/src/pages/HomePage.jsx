@@ -462,13 +462,7 @@ function SmallCard({ t, onLoreClick }) {
   );
 }
 
-function RecentWinnersCard({ recentTournament }) {
-  const PLACE_STYLES = [
-    { dot: 'bg-yellow-400 text-yellow-900', label: '1st', row: 'bg-white/10 border-white/20' },
-    { dot: 'bg-slate-300 text-slate-700',   label: '2nd', row: 'bg-white/5  border-white/10' },
-    { dot: 'bg-amber-500 text-amber-900',   label: '3rd', row: 'bg-white/5  border-white/10' },
-  ];
-
+function RecentWinnersCard({ recentChampions }) {
   return (
     <div
       className="relative rounded-xl overflow-hidden flex flex-col"
@@ -477,27 +471,21 @@ function RecentWinnersCard({ recentTournament }) {
       <div className="p-5 flex flex-col h-full">
         <div className="flex items-center gap-2 mb-3">
           <Trophy className="w-4 h-4 text-yellow-400" />
-          <span className="text-[10px] font-bold tracking-[0.2em] text-emerald-300 uppercase">Most Recent Winners</span>
+          <span className="text-[10px] font-bold tracking-[0.2em] text-emerald-300 uppercase">Champions</span>
         </div>
 
-        {recentTournament ? (
-          <>
-            <p className="font-heading font-bold text-white text-base leading-tight mb-3">
-              {recentTournament.name}
-              <span className="text-emerald-400 font-normal text-sm ml-2">{recentTournament.year}</span>
-            </p>
-            <div className="space-y-2">
-              {recentTournament.winners.slice(0, 3).map((name, i) => (
-                <div key={i} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg border ${PLACE_STYLES[i].row}`}>
-                  <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0 ${PLACE_STYLES[i].dot}`}>
-                    {i + 1}
-                  </span>
-                  <span className={`font-semibold text-sm flex-1 ${i === 0 ? 'text-white' : 'text-white/80'}`}>{name}</span>
-                  <span className="text-xs text-white/40">{PLACE_STYLES[i].label}</span>
-                </div>
-              ))}
-            </div>
-          </>
+        {recentChampions?.length ? (
+          <div className="space-y-2">
+            {recentChampions.map((entry, i) => (
+              <div key={i} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg border ${i === 0 ? 'bg-white/10 border-white/20' : 'bg-white/5 border-white/10'}`}>
+                <span className={`font-numbers text-xs font-bold flex-shrink-0 w-8 ${i === 0 ? 'text-yellow-400' : 'text-white/40'}`}>{entry.year}</span>
+                <span className="text-white/60 text-xs flex-shrink-0 hidden sm:block">{entry.name}</span>
+                <span className="text-white/60 text-xs flex-shrink-0 sm:hidden truncate max-w-[60px]">{entry.name}</span>
+                <span className={`font-semibold text-sm flex-1 text-right ${i === 0 ? 'text-white' : 'text-white/80'}`}>{entry.champion}</span>
+                {i === 0 && <Trophy className="w-3 h-3 text-yellow-400 flex-shrink-0" />}
+              </div>
+            ))}
+          </div>
         ) : (
           <p className="text-white/50 text-sm mt-auto">No results yet</p>
         )}
@@ -508,7 +496,7 @@ function RecentWinnersCard({ recentTournament }) {
 
 export default function HomePage() {
   const [tournaments, setTournaments] = useState([]);
-  const [recentTournament, setRecentTournament] = useState(null);
+  const [recentChampions, setRecentChampions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loreSlot, setLoreSlot] = useState(null);
   const navigate = useNavigate();
@@ -518,8 +506,14 @@ export default function HomePage() {
       axios.get(`${API}/tournaments`).then(r => setTournaments(r.data)).catch(() => {}),
       axios.get(`${API}/history`).then(r => {
         const history = r.data;
-        if (history?.length && history[0].tournaments?.length) {
-          setRecentTournament({ ...history[0].tournaments[0], year: history[0].year });
+        if (history?.length) {
+          const allEvents = [];
+          for (const yearEntry of history) {
+            for (const t of (yearEntry.tournaments || [])) {
+              allEvents.push({ year: yearEntry.year, name: t.name, champion: t.winners?.[0] ?? '—' });
+            }
+          }
+          setRecentChampions(allEvents.slice(0, 4));
         }
       }).catch(() => {}),
     ]).finally(() => setLoading(false));
@@ -561,7 +555,7 @@ export default function HomePage() {
       {/* 3 small cards + Recent Winners in a 2×2 grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 stagger">
         {others.map(t => <SmallCard key={t.slot} t={t} onLoreClick={setLoreSlot} />)}
-        <RecentWinnersCard recentTournament={recentTournament} />
+        <RecentWinnersCard recentChampions={recentChampions} />
       </div>
 
       {/* Tournament lore modal */}
