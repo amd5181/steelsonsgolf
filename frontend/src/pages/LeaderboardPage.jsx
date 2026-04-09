@@ -319,36 +319,35 @@ export default function LeaderboardPage() {
                   </div>
                 ) : (
                   <>
-                    {/* Search bar */}
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                      <input
-                        type="text"
-                        value={search}
-                        onChange={e => setSearch(e.target.value)}
-                        placeholder="Search by name…"
-                        className="w-full pl-9 pr-9 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-[#0F172A] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1B4332]/30 focus:border-[#1B4332]/40 transition-all"
-                      />
-                      {search && (
-                        <button
-                          onClick={() => setSearch('')}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-slate-400 font-semibold">
+                    {/* Search + team count + expand toggle — single row */}
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex-1">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                        <input
+                          type="text"
+                          value={search}
+                          onChange={e => setSearch(e.target.value)}
+                          placeholder="Search by name…"
+                          className="w-full pl-8 pr-7 py-1.5 rounded-lg border border-slate-200 bg-white text-sm text-[#0F172A] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1B4332]/30 focus:border-[#1B4332]/40 transition-all"
+                        />
+                        {search && (
+                          <button
+                            onClick={() => setSearch('')}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                      <span className="text-xs text-slate-400 font-semibold whitespace-nowrap flex-shrink-0">
                         {search
-                          ? `${standings.filter(t => t.team_name?.toLowerCase().includes(search.toLowerCase())).length} of ${standings.length} teams`
+                          ? `${standings.filter(t => t.team_name?.toLowerCase().includes(search.toLowerCase())).length}/${standings.length}`
                           : `${standings.length} teams`
                         }
                       </span>
                       <button
                         onClick={() => setExpanded(e => !e)}
-                        className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border-2 transition-all ${
+                        className={`flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full border-2 transition-all flex-shrink-0 ${
                           expanded
                             ? 'bg-white text-[#1B4332] border-[#1B4332] hover:bg-[#1B4332] hover:text-white'
                             : 'bg-[#1B4332] text-white border-[#1B4332] hover:bg-[#2D6A4F]'
