@@ -327,7 +327,7 @@ export default function LeaderboardPage() {
                           type="text"
                           value={search}
                           onChange={e => setSearch(e.target.value)}
-                          placeholder="Search by name…"
+                          placeholder="Search by team…"
                           className="w-full pl-8 pr-7 py-1.5 rounded-lg border border-slate-200 bg-white text-sm text-[#0F172A] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1B4332]/30 focus:border-[#1B4332]/40 transition-all"
                         />
                         {search && (
