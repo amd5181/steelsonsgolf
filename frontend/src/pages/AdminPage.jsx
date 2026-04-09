@@ -23,7 +23,7 @@ function StatsModal({ open, tournament, teams, onClose }) {
     ownershipMap[g.name] = (ownershipMap[g.name] || 0) + 1;
   }));
   const ownership = Object.entries(ownershipMap)
-    .map(([name, count]) => ({ name, pct: Math.round((count / totalTeams) * 100) }))
+    .map(([name, count]) => ({ name, count, pct: Math.round((count / totalTeams) * 100) }))
     .sort((a, b) => b.pct - a.pct);
 
   // Budget
@@ -50,7 +50,7 @@ function StatsModal({ open, tournament, teams, onClose }) {
   return (
     <Dialog open={open} onOpenChange={o => { if (!o) onClose(); }}>
       <DialogContent
-        className="sm:max-w-md p-0 overflow-hidden flex flex-col gap-0 top-[3%] translate-y-0 sm:top-[50%] sm:translate-y-[-50%] [&>button:last-child]:text-white/90 [&>button:last-child]:opacity-90 [&>button:last-child]:rounded-full [&>button:last-child]:bg-black/25 [&>button:last-child]:p-1"
+        className="sm:max-w-2xl p-0 overflow-hidden flex flex-col gap-0 top-[3%] translate-y-0 sm:top-[50%] sm:translate-y-[-50%] [&>button:last-child]:text-white/90 [&>button:last-child]:opacity-90 [&>button:last-child]:rounded-full [&>button:last-child]:bg-black/25 [&>button:last-child]:p-1"
         style={{ maxHeight: 'calc(100dvh - 2rem)' }}
       >
         {/* Header */}
@@ -81,62 +81,65 @@ function StatsModal({ open, tournament, teams, onClose }) {
               <Users className="w-3.5 h-3.5 text-[#2D6A4F]" />
               <span className="text-[10px] font-bold tracking-[0.18em] text-slate-400 uppercase">Most Selected</span>
             </div>
-            <div className="space-y-2.5">
+            <div className="space-y-2">
               {ownership.slice(0, 8).map((p, i) => (
-                <div key={i} className="flex items-center gap-2.5">
-                  <span className="text-xs text-slate-700 truncate flex-shrink-0" style={{ width: '9rem' }}>{p.name}</span>
-                  <div className="flex-1 bg-slate-100 rounded-full h-2 overflow-hidden">
+                <div key={i} className="flex items-center gap-2">
+                  <span className="text-xs text-slate-700 truncate flex-shrink-0" style={{ width: '8rem' }}>{p.name}</span>
+                  <div className="flex-1 relative bg-slate-100 rounded-full h-5 overflow-hidden">
                     <div className="h-full rounded-full bg-[#1B4332]" style={{ width: `${p.pct}%` }} />
+                    <span className="absolute inset-0 flex items-center px-2 text-[10px] font-bold text-white leading-none">{p.pct}%</span>
                   </div>
-                  <span className="text-xs font-bold font-numbers text-[#1B4332] w-9 text-right flex-shrink-0">{p.pct}%</span>
+                  <span className="text-[11px] font-bold font-numbers text-slate-500 flex-shrink-0 w-14 text-right">{p.count}/{totalTeams}</span>
                 </div>
               ))}
             </div>
           </section>
 
-          {/* Thinnest wallet */}
-          <section>
-            <div className="flex items-center gap-2 mb-3">
-              <DollarSign className="w-3.5 h-3.5 text-emerald-500" />
-              <span className="text-[10px] font-bold tracking-[0.18em] text-slate-400 uppercase">Thinnest Wallet</span>
-            </div>
-            <div className="bg-slate-50 rounded-xl p-3">
-              <div className="flex items-center justify-between mb-1.5">
-                <p className="text-xs font-semibold text-[#0F172A]">💸 {cheapest.user_name} #{cheapest.team_number}</p>
-                <span className="font-numbers font-bold text-sm text-[#1B4332]">{fmt(cheapest.total)}</span>
+          {/* Thinnest Wallet + Left on the Board — side by side */}
+          <div className="flex gap-3 items-start">
+            {/* Thinnest wallet */}
+            <section className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-2">
+                <DollarSign className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
+                <span className="text-[10px] font-bold tracking-[0.18em] text-slate-400 uppercase">Thinnest Wallet</span>
               </div>
-              <div className="space-y-1">
-                {cheapest.golfers.map((g, i) => (
-                  <div key={i} className="flex items-center justify-between text-[11px]">
-                    <span className="text-slate-600">{g.name}</span>
-                    <span className="font-numbers text-slate-400">{fmt(g.price)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          {/* Left on the board */}
-          {leftOnBoard.length > 0 && (
-            <section>
-              <div className="flex items-center gap-2 mb-3">
-                <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
-                <span className="text-[10px] font-bold tracking-[0.18em] text-slate-400 uppercase">Left on the Board</span>
-                <span className="text-[9px] text-slate-300 ml-0.5">0% ownership</span>
-              </div>
-              <div className="space-y-1.5">
-                {leftOnBoard.map((g, i) => (
-                  <div key={i} className="flex items-center justify-between px-3 py-2 bg-rose-50 border border-rose-100 rounded-lg">
-                    <div className="flex items-center gap-2.5">
-                      <span className="text-[10px] font-bold text-rose-300 w-4">#{fieldRankMap[g.name]}</span>
-                      <span className="text-sm font-medium text-slate-700">{g.name}</span>
+              <div className="bg-slate-50 rounded-xl p-3">
+                <div className="flex items-center justify-between mb-1.5">
+                  <p className="text-xs font-semibold text-[#0F172A] truncate mr-2">💸 {cheapest.user_name} #{cheapest.team_number}</p>
+                  <span className="font-numbers font-bold text-sm text-[#1B4332] flex-shrink-0">{fmt(cheapest.total)}</span>
+                </div>
+                <div className="space-y-1">
+                  {cheapest.golfers.map((g, i) => (
+                    <div key={i} className="flex items-center justify-between text-[11px]">
+                      <span className="text-slate-600 truncate mr-1">{g.name}</span>
+                      <span className="font-numbers text-slate-400 flex-shrink-0">{fmt(g.price)}</span>
                     </div>
-                    <span className="font-numbers font-bold text-sm text-rose-500">{fmt(g.price)}</span>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </section>
-          )}
+
+            {/* Left on the board */}
+            {leftOnBoard.length > 0 && (
+              <section className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertTriangle className="w-3.5 h-3.5 text-rose-400 flex-shrink-0" />
+                  <span className="text-[10px] font-bold tracking-[0.18em] text-slate-400 uppercase">Left on Board</span>
+                </div>
+                <div className="space-y-1.5">
+                  {leftOnBoard.map((g, i) => (
+                    <div key={i} className="flex items-center justify-between px-3 py-2 bg-rose-50 border border-rose-100 rounded-lg">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-[10px] font-bold text-rose-300 w-4 flex-shrink-0">#{fieldRankMap[g.name]}</span>
+                        <span className="text-xs font-medium text-slate-700 truncate">{g.name}</span>
+                      </div>
+                      <span className="font-numbers font-bold text-xs text-rose-500 flex-shrink-0 ml-1">{fmt(g.price)}</span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+          </div>
 
           <div className="h-1" />
         </div>
