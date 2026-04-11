@@ -308,11 +308,13 @@ async def espn_get_field(event_id, event_date=None):
                 'is_active': is_active_val,
             })
 
-        # Second pass: Detect cuts/WDs by round count and leaderboard order.
+        # Second pass: Detect cuts/WDs by round count and inferred cut line.
         # Count only "real" rounds (placeholders already stripped above).
         # If the tournament has progressed to R3+:
-        #   - ESPN ranks cut players below all still-active players in the `order` field.
-        #     Players with fewer rounds whose order exceeds the max order of R3 players → CUT.
+        #   - Infer the cut line from R3 players' R1+R2 stroke totals: the worst 2-round
+        #     score that still made R3 IS the cut line. Any 2-round player who scored worse
+        #     (more strokes) missed the cut. This is robust regardless of which players
+        #     have finished R3 so far (avoids fragility in order-based approaches).
         #   - Players with exactly 2 real rounds and no placeholder rounds → CUT (missed cut)
         #   - Players more than one round behind the leader with placeholders → WD
         #     (being exactly one round behind just means they haven't teed off yet in the current round)
@@ -325,30 +327,33 @@ async def espn_get_field(event_id, event_date=None):
             max_rounds = max(round_counts.keys()) if round_counts else 0
 
             if max_rounds >= 3:
-                # Find the highest order number among players who have already played max rounds.
-                # ESPN places missed-cut players after all still-active players, so any
-                # player with fewer rounds and a higher order number has missed the cut.
-                max_order_of_leaders = max(
-                    (g.get('order', 0) for g in golfers if len(g['rounds']) == max_rounds),
-                    default=0
-                )
+                # Infer cut line: worst R1+R2 stroke total among players who made it to R3.
+                # Cuts are inclusive of ties, so strictly greater than this = missed cut.
+                cut_line_strokes = None
+                for g in golfers:
+                    if len(g['rounds']) >= 3:
+                        r1r2 = sum((r.get('strokes') or 0) for r in g['rounds'][:2])
+                        if r1r2 > 0:
+                            if cut_line_strokes is None or r1r2 > cut_line_strokes:
+                                cut_line_strokes = r1r2
 
                 for g in golfers:
                     if not g.get('is_cut') and len(g['rounds']) < max_rounds:
                         rounds_behind = max_rounds - len(g['rounds'])
-                        if max_order_of_leaders > 0 and g.get('order', 0) > max_order_of_leaders:
-                            # Ranked below all R3+ players → missed cut
-                            g['is_cut'] = True
+                        if cut_line_strokes and len(g['rounds']) == 2:
+                            r1r2 = sum((r.get('strokes') or 0) for r in g['rounds'][:2])
+                            if r1r2 > 0 and r1r2 > cut_line_strokes:
+                                # Worse than worst qualifier → missed cut
+                                g['is_cut'] = True
+                        if not g.get('is_cut'):
                             if g.get('has_placeholder_rounds') and rounds_behind > 1:
+                                # More than one full round behind with placeholders → WD
+                                # (exactly one round behind = just waiting to tee off in current round)
                                 g['is_wd'] = True
-                        elif g.get('has_placeholder_rounds') and rounds_behind > 1:
-                            # More than one full round behind with placeholders → WD
-                            # (exactly one round behind = just waiting to tee off in current round)
-                            g['is_wd'] = True
-                            g['is_cut'] = True
-                        elif len(g['rounds']) == 2 and not g.get('has_placeholder_rounds'):
-                            # Standard missed cut (exactly 2 rounds, no placeholders)
-                            g['is_cut'] = True
+                                g['is_cut'] = True
+                            elif len(g['rounds']) == 2 and not g.get('has_placeholder_rounds'):
+                                # Standard missed cut (exactly 2 rounds, no placeholders)
+                                g['is_cut'] = True
         
         return golfers, data
     except Exception as e:
