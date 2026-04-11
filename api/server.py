@@ -308,9 +308,11 @@ async def espn_get_field(event_id, event_date=None):
                 'is_active': is_active_val,
             })
 
-        # Second pass: Detect cuts/WDs by round count.
+        # Second pass: Detect cuts/WDs by round count and leaderboard order.
         # Count only "real" rounds (placeholders already stripped above).
         # If the tournament has progressed to R3+:
+        #   - ESPN ranks cut players below all still-active players in the `order` field.
+        #     Players with fewer rounds whose order exceeds the max order of R3 players → CUT.
         #   - Players with exactly 2 real rounds and no placeholder rounds → CUT (missed cut)
         #   - Players more than one round behind the leader with placeholders → WD
         #     (being exactly one round behind just means they haven't teed off yet in the current round)
@@ -323,10 +325,23 @@ async def espn_get_field(event_id, event_date=None):
             max_rounds = max(round_counts.keys()) if round_counts else 0
 
             if max_rounds >= 3:
+                # Find the highest order number among players who have already played max rounds.
+                # ESPN places missed-cut players after all still-active players, so any
+                # player with fewer rounds and a higher order number has missed the cut.
+                max_order_of_leaders = max(
+                    (g.get('order', 0) for g in golfers if len(g['rounds']) == max_rounds),
+                    default=0
+                )
+
                 for g in golfers:
                     if not g.get('is_cut') and len(g['rounds']) < max_rounds:
                         rounds_behind = max_rounds - len(g['rounds'])
-                        if g.get('has_placeholder_rounds') and rounds_behind > 1:
+                        if max_order_of_leaders > 0 and g.get('order', 0) > max_order_of_leaders:
+                            # Ranked below all R3+ players → missed cut
+                            g['is_cut'] = True
+                            if g.get('has_placeholder_rounds') and rounds_behind > 1:
+                                g['is_wd'] = True
+                        elif g.get('has_placeholder_rounds') and rounds_behind > 1:
                             # More than one full round behind with placeholders → WD
                             # (exactly one round behind = just waiting to tee off in current round)
                             g['is_wd'] = True
