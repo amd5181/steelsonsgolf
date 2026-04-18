@@ -1182,6 +1182,116 @@ HISTORY = [
 async def get_history():
     return HISTORY
 
+@api_router.get("/cup-race")
+async def get_cup_race():
+    tournaments = await db.tournaments.find({}, {"_id": 0}).to_list(10)
+    tournaments.sort(key=lambda x: x.get("slot", 99))
+
+    manager_data: Dict[str, Any] = {}
+
+    for t in tournaments:
+        tid = t["id"]
+        slot = t.get("slot", 0)
+        t_name = t.get("name", f"Event {slot}")
+
+        cache = await db.score_cache.find_one({"tournament_id": tid}, {"_id": 0})
+        scores = cache.get("scores", []) if cache else []
+        tied_map = calc_tied_scores(scores) if scores else {}
+
+        teams = await db.teams.find({"tournament_id": tid}, {"_id": 0}).to_list(500)
+
+        for team in teams:
+            uid = team["user_id"]
+            uname = team["user_name"]
+            tp = 0.0
+            gd = []
+
+            for golfer in team.get("golfers", []):
+                sd = None
+                for s in scores:
+                    if s.get("name", "").lower() == golfer.get("name", "").lower() or \
+                       s.get("espn_id") == golfer.get("espn_id"):
+                        sd = s
+                        break
+
+                if sd:
+                    name_key = sd.get("name", "").lower()
+                    espn_key = sd.get("espn_id", "")
+                    tied_data = tied_map.get(name_key) or tied_map.get(espn_key)
+                    if tied_data and not sd.get("is_cut"):
+                        tot = max(5.0, tied_data["total_points"])
+                        position = tied_data["position"]
+                        pp = tied_data["place_points"]
+                        sp = tied_data["stroke_points"]
+                    else:
+                        tot = 0.0
+                        pp = 0.0
+                        sp = 0
+                        if sd.get("is_wd"):
+                            position = "WD"
+                        elif sd.get("is_cut"):
+                            position = sd.get("position", "CUT")
+                        else:
+                            position = sd.get("position", "-")
+                    gd.append({
+                        "name": golfer.get("name", ""),
+                        "position": position,
+                        "place_points": round(pp, 1),
+                        "stroke_points": sp,
+                        "total_points": round(tot, 1),
+                        "is_cut": sd.get("is_cut", False),
+                        "is_wd": sd.get("is_wd", False),
+                    })
+                    tp += tot
+                else:
+                    gd.append({
+                        "name": golfer.get("name", ""),
+                        "position": "-",
+                        "place_points": 0,
+                        "stroke_points": 0,
+                        "total_points": 0,
+                        "is_cut": False,
+                        "is_wd": False,
+                    })
+
+            tp = round(tp, 1)
+
+            if uid not in manager_data:
+                manager_data[uid] = {
+                    "user_id": uid,
+                    "user_name": uname,
+                    "slot_scores": {},
+                    "slot_teams": {},
+                }
+
+            current_best = manager_data[uid]["slot_scores"].get(slot, -1)
+            if tp > current_best:
+                manager_data[uid]["slot_scores"][slot] = tp
+                manager_data[uid]["slot_teams"][slot] = gd
+
+    t_meta = [{"id": t["id"], "name": t["name"], "slot": t.get("slot", 0),
+               "status": t.get("status", "")} for t in tournaments]
+
+    standings = []
+    for uid, md in manager_data.items():
+        total = round(sum(md["slot_scores"].values()), 1)
+        slot_scores = {t["slot"]: md["slot_scores"].get(t["slot"], 0) for t in tournaments}
+        slot_teams = {t["slot"]: md["slot_teams"].get(t["slot"], []) for t in tournaments}
+        standings.append({
+            "user_id": uid,
+            "user_name": md["user_name"],
+            "total_points": total,
+            "slot_scores": slot_scores,
+            "slot_teams": slot_teams,
+        })
+
+    standings.sort(key=lambda x: (-x["total_points"], x["user_name"].lower()))
+    for i, s in enumerate(standings):
+        s["rank"] = i + 1
+
+    return {"tournaments": t_meta, "standings": standings}
+
+
 @api_router.get("/")
 async def root():
     return {"message": "FairwayFantasy API"}

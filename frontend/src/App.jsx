@@ -7,6 +7,7 @@ import MyTeamsPage from './pages/MyTeamsPage'
 import LeaderboardPage from './pages/LeaderboardPage'
 import RulesPage from './pages/RulesPage'
 import HistoryPage from './pages/HistoryPage'
+import CupRacePage from './pages/CupRacePage'
 import AdminPage from './pages/AdminPage'
 import Layout from './components/Layout'
 import './App.css'
@@ -73,6 +74,7 @@ function App() {
             <Route path="/rules" element={<RulesPage />} />
             <Route path="/legacy" element={<HistoryPage />} />
             <Route path="/history" element={<Navigate to="/legacy" />} />
+            <Route path="/cup-race" element={<CupRacePage />} />
             {user?.is_admin && <Route path="/admin" element={<AdminPage />} />}
           </Route>
         </Routes>

@@ -1,5 +1,5 @@
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Home, Users, BarChart2, BookOpen, Settings, UserCog, Trophy, LogIn } from 'lucide-react';
+import { Home, Users, BarChart2, BookOpen, Settings, UserCog, Trophy, LogIn, Flag } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../components/ui/tooltip';
 import { useAuth } from '../App';
 import { useState } from 'react';
@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { path: '/home',        icon: Home,     label: 'Home',        shortLabel: null },
   { path: '/teams',       icon: Users,    label: 'My Teams',    shortLabel: 'Teams' },
   { path: '/leaderboard', icon: BarChart2, label: 'Leaderboard', shortLabel: 'Scores' },
+  { path: '/cup-race',    icon: Flag,     label: 'Cup Race',    shortLabel: 'Cup' },
   { path: '/legacy',      icon: Trophy,   label: 'Legacy',      shortLabel: 'Legacy' },
   { path: '/rules',       icon: BookOpen, label: 'Rules',       shortLabel: 'Rules' },
 ];
