@@ -27,45 +27,45 @@ function RankBadge({ rank }) {
   );
 }
 
-function GolferRow({ g }) {
-  const pts = typeof g.total_points === 'number' ? g.total_points.toFixed(1) : '0.0';
-  return (
-    <div className="flex items-center px-4 py-1.5 text-xs border-b border-slate-50 last:border-0">
-      <span className={`w-10 font-numbers font-bold flex-shrink-0 ${g.is_cut || g.is_wd ? 'text-red-400' : 'text-slate-500'}`}>
-        {g.is_wd ? 'WD' : g.is_cut ? 'CUT' : (g.position || '-')}
-      </span>
-      <span className="flex-1 font-medium text-[#0F172A] truncate">{g.name}</span>
-      <span className="font-numbers font-bold text-[#1B4332] w-14 text-right">{pts} pts</span>
-    </div>
-  );
-}
 
 function ExpandedDetail({ tournaments, slotScores, slotTeams }) {
   return (
-    <div className="border-t border-slate-100 bg-slate-50/60 divide-y divide-slate-100">
-      {tournaments.map(t => {
-        const slot = t.slot;
-        const score = slotScores[slot] || 0;
-        const golfers = slotTeams[slot] || [];
-        const participated = score > 0 || golfers.some(g => g.total_points > 0);
-        return (
-          <div key={slot}>
-            <div className="flex items-center px-4 py-2 bg-slate-100/60">
-              <span className="text-xs font-bold text-slate-600 uppercase tracking-wider flex-1">{t.name}</span>
-              <span className={`font-numbers font-bold text-sm ${score > 0 ? 'text-[#1B4332]' : 'text-slate-400'}`}>
-                {score > 0 ? `${score.toFixed(1)} pts` : '—'}
-              </span>
-            </div>
-            {participated && golfers.length > 0 ? (
-              <div>
-                {golfers.map((g, i) => <GolferRow key={i} g={g} />)}
+    <div className="border-t border-slate-100 bg-slate-50/60 px-3 py-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+        {tournaments.map(t => {
+          const slot = t.slot;
+          const score = slotScores[slot] || 0;
+          const golfers = slotTeams[slot] || [];
+          const participated = score > 0 || golfers.some(g => g.total_points > 0);
+          return (
+            <div key={slot} className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+              <div className="px-2.5 py-1.5 bg-slate-100 flex items-center justify-between gap-1">
+                <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider truncate">{abbrev(t.name)}</span>
+                <span className={`font-numbers font-bold text-xs flex-shrink-0 ${score > 0 ? 'text-[#1B4332]' : 'text-slate-400'}`}>
+                  {score > 0 ? score.toFixed(1) : '—'}
+                </span>
               </div>
-            ) : (
-              <div className="px-4 py-2 text-xs text-slate-400 italic">Did not participate</div>
-            )}
-          </div>
-        );
-      })}
+              {participated && golfers.length > 0 ? (
+                <div className="divide-y divide-slate-50">
+                  {golfers.map((g, i) => (
+                    <div key={i} className="flex items-center px-2.5 py-1 text-[11px]">
+                      <span className={`w-8 font-numbers font-bold flex-shrink-0 ${g.is_cut || g.is_wd ? 'text-red-400' : 'text-slate-400'}`}>
+                        {g.is_wd ? 'WD' : g.is_cut ? 'CUT' : (g.position || '-')}
+                      </span>
+                      <span className="flex-1 text-[#0F172A] truncate">{g.name}</span>
+                      <span className="font-numbers font-bold text-[#1B4332] flex-shrink-0 ml-1">
+                        {typeof g.total_points === 'number' ? g.total_points.toFixed(1) : '0'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="px-2.5 py-3 text-[11px] text-slate-400 italic text-center">Did not play</div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
