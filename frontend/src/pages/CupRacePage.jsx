@@ -102,6 +102,13 @@ export default function CupRacePage() {
         <h1 className="font-heading font-extrabold text-3xl sm:text-4xl text-[#0F172A] tracking-tight">CUP RACE</h1>
       </div>
 
+      <p className="text-xs text-slate-400 mb-1">
+        Presented by{' '}
+        <a href="https://platzfartsaroundtheworld.art.blog" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-600">
+          PlatzFartsAroundTheWorld.art.blog
+        </a>
+      </p>
+
       <p className="text-sm text-slate-500 mb-6">
         Season-long standings based on each manager's top team points per major. Most points at the end of the season wins.
       </p>
