@@ -104,8 +104,8 @@ export default function CupRacePage() {
 
       <p className="text-xs text-slate-400 mb-1">
         Presented by{' '}
-        <a href="https://platzfartsaroundtheworld.art.blog" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-600">
-          PlatzFartsAroundTheWorld.art.blog
+        <a href="https://platzfartsacrosstheworld.art.blog" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-600">
+          PlatzFartsAcrossTheWorld.art.blog
         </a>
       </p>
 
