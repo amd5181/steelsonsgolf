@@ -97,15 +97,14 @@ export default function CupRacePage() {
 
   return (
     <div className="p-4 md:p-8 max-w-4xl mx-auto">
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex items-center gap-3 mb-2">
         <Flag className="w-7 h-7 text-[#1B4332]" />
-        <h1 className="font-heading font-extrabold text-3xl sm:text-4xl text-[#0F172A] tracking-tight">CUP RACE</h1>
+        <h1 className="font-heading font-extrabold text-3xl sm:text-4xl text-[#0F172A] tracking-tight">PLATZFARTSACROSSTHEWORLD.ART.BLOG CUP</h1>
       </div>
 
-      <p className="text-xs text-slate-400 mb-1">
-        Presented by{' '}
+      <p className="text-xs text-slate-400 mb-6">
         <a href="https://platzfartsacrosstheworld.art.blog" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-600">
-          PlatzFartsAcrossTheWorld.art.blog
+          platzfartsacrosstheworld.art.blog
         </a>
       </p>
 
