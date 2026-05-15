@@ -98,7 +98,6 @@ export default function CupRacePage() {
   return (
     <div className="p-4 md:p-8 max-w-4xl mx-auto">
       <div className="flex items-center gap-3 mb-2">
-        <Flag className="w-7 h-7 text-[#1B4332]" />
         <h1 className="font-heading font-extrabold text-3xl sm:text-4xl text-[#0F172A] tracking-tight flex items-center gap-2">
           <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSaIMjhRx0qfnkqlYeFvo7Z5g5EWnZDuiRJgw&s" alt="Hills Dept. Store" className="h-16 object-contain" />
           CUP
