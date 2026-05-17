@@ -400,7 +400,7 @@ export default function LeaderboardPage() {
                         </div>
 
                         <div className="flex items-center px-4 py-1 bg-slate-50 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                          <span className="w-10">Pos</span>
+                          <span className="w-7">Pos</span>
                           <span className="flex-1">Player</span>
                           <div className="flex gap-0.5 mr-1">
                             <span className="w-6 text-center">R1</span>
@@ -416,7 +416,7 @@ export default function LeaderboardPage() {
                         <div className="divide-y divide-slate-50">
                           {team.golfers.map((g, i) => (
                             <div key={i} className="flex items-center px-4 py-1.5 text-xs">
-                              <span className={`w-10 font-numbers font-bold flex-shrink-0 ${g.is_cut ? 'text-red-400' : 'text-slate-500'}`}>
+                              <span className={`w-7 font-numbers font-bold flex-shrink-0 ${g.is_cut ? 'text-red-400' : 'text-slate-500'}`}>
                                 {g.is_wd ? 'WD' : g.is_cut ? 'CUT' : g.position || '-'}{g.is_active && !g.is_cut && '*'}
                               </span>
                               <span className="flex-1 font-medium text-[#0F172A] truncate min-w-0 mr-1">
