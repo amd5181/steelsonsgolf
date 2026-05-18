@@ -84,11 +84,11 @@ const TOURNAMENT_LORE = {
     tagline: 'No amateurs. No excuses.',
     headerGradient: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 55%, #1d4ed8 100%)',
     champions: [
+      { year: 2026, name: 'Justin Malago' },
       { year: 2025, name: 'Scottie Scheffler' },
       { year: 2024, name: 'Xander Schauffele' },
       { year: 2023, name: 'Brooks Koepka' },
       { year: 2022, name: 'Justin Thomas' },
-      { year: 2021, name: 'Phil Mickelson' },
     ],
     course: { par: 70, yards: '7,320', est: 1928, note: 'Tree-lined, tight fairways and small greens that punish imprecision.' },
     weather: { temp: '68–78°F', desc: 'Warm & humid', note: 'Pennsylvania in May — comfortable mornings, afternoon thunderstorms possible.' },
