@@ -17,6 +17,16 @@ export default function RulesPage() {
       <h1 className="font-heading font-extrabold text-3xl sm:text-4xl text-[#0F172A] tracking-tight mb-2">RULES & SCORING</h1>
       <p className="text-slate-500 text-sm mb-6">Teams earn points based on a player's final Place and how many Strokes Behind they finished from the tournament leader. This balanced approach rewards both stars and depth picks.</p>
 
+      <div className="bg-gradient-to-br from-[#1B4332] to-[#081C15] rounded-xl p-5 text-white mb-4">
+        <h2 className="font-heading font-bold text-lg mb-2">HOW TO WIN</h2>
+        <ul className="space-y-2 text-sm text-slate-200">
+          <li className="flex items-start gap-2"><span className="text-[#CCFF00] font-bold mt-0.5">1.</span>Build up to 2 teams of 5 golfers within a $1,000,000 budget</li>
+          <li className="flex items-start gap-2"><span className="text-[#CCFF00] font-bold mt-0.5">2.</span>Each golfer earns Place Points + Stroke Points based on their finish</li>
+          <li className="flex items-start gap-2"><span className="text-[#CCFF00] font-bold mt-0.5">3.</span>Your team's total = sum of all 5 golfers' points</li>
+          <li className="flex items-start gap-2"><span className="text-[#CCFF00] font-bold mt-0.5">4.</span>Top 3 teams per tournament take the glory</li>
+        </ul>
+      </div>
+
       <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5 mb-4">
         <div className="flex items-center gap-2 mb-4">
           <div className="w-8 h-8 rounded-lg bg-[#1B4332] flex items-center justify-center">
@@ -63,16 +73,6 @@ export default function RulesPage() {
       <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5 mb-4">
         <h3 className="font-heading font-bold text-sm text-[#0F172A] uppercase tracking-wider mb-3">Tie-Breaking</h3>
         <p className="text-sm text-slate-600">When golfers are tied, their Place Points are averaged across the tied positions. For example, if 3 golfers are tied for 2nd, each receives the average of 2nd + 3rd + 4th place points. Stroke Points are calculated identically for all tied golfers since they share the same strokes behind.</p>
-      </div>
-
-      <div className="bg-gradient-to-br from-[#1B4332] to-[#081C15] rounded-xl p-5 text-white">
-        <h2 className="font-heading font-bold text-lg mb-2">HOW TO WIN</h2>
-        <ul className="space-y-2 text-sm text-slate-200">
-          <li className="flex items-start gap-2"><span className="text-[#CCFF00] font-bold mt-0.5">1.</span>Build up to 2 teams of 5 golfers within a $1,000,000 budget</li>
-          <li className="flex items-start gap-2"><span className="text-[#CCFF00] font-bold mt-0.5">2.</span>Each golfer earns Place Points + Stroke Points based on their finish</li>
-          <li className="flex items-start gap-2"><span className="text-[#CCFF00] font-bold mt-0.5">3.</span>Your team's total = sum of all 5 golfers' points</li>
-          <li className="flex items-start gap-2"><span className="text-[#CCFF00] font-bold mt-0.5">4.</span>Top 3 teams per tournament take the glory</li>
-        </ul>
       </div>
     </div>
   );
