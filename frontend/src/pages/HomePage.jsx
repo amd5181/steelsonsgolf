@@ -507,30 +507,12 @@ export default function HomePage() {
       axios.get(`${API}/history`).then(r => {
         const history = r.data;
         if (history?.length) {
-          const allEvents = [];
-          let latestTheOpen = null;
-
-          for (const yearEntry of history) {
-            for (const t of (yearEntry.tournaments || [])) {
-              const entry = { year: yearEntry.year, name: t.name, champion: t.winners?.[0] ?? '—' };
-              allEvents.push(entry);
-              if (t.name === 'The Open') {
-                latestTheOpen = entry;
-              }
-            }
-          }
-
-          const recentEntries = [];
-          if (latestTheOpen) {
-            recentEntries.push(latestTheOpen);
-          }
-
-          const otherEntries = allEvents.filter(entry => {
-            if (!latestTheOpen) return true;
-            return !(entry.name === latestTheOpen.name && entry.year === latestTheOpen.year);
-          });
-
-          recentEntries.push(...otherEntries.slice(0, 3));
+          const latestYear = history.find(yearEntry => yearEntry.year === 2026);
+          const recentEntries = (latestYear?.tournaments || []).map(t => ({
+            year: latestYear.year,
+            name: t.name,
+            champion: t.winners?.[0] ?? '—',
+          }));
           setRecentChampions(recentEntries.slice(0, 4));
         }
       }).catch(() => {}),

@@ -112,25 +112,47 @@ export default function CupRacePage() {
       </p>
 
       {podium.length > 0 && (
-        <div className="mb-6 rounded-2xl border border-[#1B4332]/10 bg-gradient-to-br from-[#1B4332] to-[#2D6A4F] p-4 text-white shadow-sm">
+        <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-4">
-            <Trophy className="w-4 h-4 text-[#CCFF00]" />
-            <h2 className="font-heading font-bold text-sm uppercase tracking-[0.2em] text-[#CCFF00]">Final Podium</h2>
+            <div className="rounded-full bg-[#1B4332]/10 p-2">
+              <Trophy className="w-4 h-4 text-[#1B4332]" />
+            </div>
+            <div>
+              <h2 className="font-heading font-bold text-sm uppercase tracking-[0.2em] text-[#1B4332]">Final Podium</h2>
+              <p className="text-[11px] text-slate-500">Top 3 finishers after all four majors</p>
+            </div>
           </div>
+
           <div className="grid gap-3 md:grid-cols-3">
             {podium.map((entry, index) => {
-              const accent = index === 0 ? 'from-[#fbbf24] to-[#f59e0b]' : index === 1 ? 'from-slate-200 to-slate-300' : 'from-[#c2410c] to-[#9a2c0a]';
+              const isGold = index === 0;
+              const isSilver = index === 1;
+              const isBronze = index === 2;
+              const cardClass = isGold
+                ? 'border-[#D4AF37] bg-gradient-to-br from-[#FFF8D9] to-[#FDE68A]'
+                : isSilver
+                  ? 'border-slate-300 bg-gradient-to-br from-slate-50 to-slate-100'
+                  : 'border-[#B87333] bg-gradient-to-br from-[#FFF2E8] to-[#FCD7B0]';
+              const rankLabel = isGold ? '1st' : isSilver ? '2nd' : '3rd';
+              const rankBadgeClass = isGold
+                ? 'bg-[#D4AF37] text-[#5B3A00]'
+                : isSilver
+                  ? 'bg-slate-300 text-slate-700'
+                  : 'bg-[#B87333] text-white';
+
               return (
-                <div key={entry.user_id} className={`rounded-xl border border-white/20 bg-gradient-to-br ${accent} p-4 text-[#0F172A]`}>
+                <div key={entry.user_id} className={`rounded-xl border p-4 shadow-sm ${cardClass}`}>
                   <div className="flex items-center justify-between mb-3">
-                    <span className="text-[10px] font-bold uppercase tracking-[0.2em]">{index === 0 ? '1st' : index === 1 ? '2nd' : '3rd'}</span>
-                    <div className="w-7 h-7 rounded-full bg-white/70 flex items-center justify-center text-sm font-black font-numbers">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-700">{rankLabel}</span>
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-black font-numbers ${rankBadgeClass}`}>
                       {index + 1}
                     </div>
                   </div>
-                  <p className="font-heading font-bold text-lg truncate">{entry.user_name}</p>
-                  <p className="font-numbers font-extrabold text-2xl mt-1">{entry.total_points.toFixed(1)}</p>
-                  <p className="text-[11px] uppercase tracking-[0.2em] opacity-70 mt-1">points</p>
+                  <p className="font-heading font-bold text-lg text-[#0F172A] truncate">{entry.user_name}</p>
+                  <div className="mt-3 rounded-lg bg-white/70 px-3 py-2">
+                    <p className="font-numbers font-extrabold text-2xl text-[#1B4332]">{entry.total_points.toFixed(1)}</p>
+                    <p className="text-[11px] uppercase tracking-[0.2em] text-slate-500">points</p>
+                  </div>
                 </div>
               );
             })}
