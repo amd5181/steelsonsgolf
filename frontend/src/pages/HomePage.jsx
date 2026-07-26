@@ -508,12 +508,30 @@ export default function HomePage() {
         const history = r.data;
         if (history?.length) {
           const allEvents = [];
+          let latestTheOpen = null;
+
           for (const yearEntry of history) {
             for (const t of (yearEntry.tournaments || [])) {
-              allEvents.push({ year: yearEntry.year, name: t.name, champion: t.winners?.[0] ?? '—' });
+              const entry = { year: yearEntry.year, name: t.name, champion: t.winners?.[0] ?? '—' };
+              allEvents.push(entry);
+              if (t.name === 'The Open') {
+                latestTheOpen = entry;
+              }
             }
           }
-          setRecentChampions(allEvents.slice(0, 4));
+
+          const recentEntries = [];
+          if (latestTheOpen) {
+            recentEntries.push(latestTheOpen);
+          }
+
+          const otherEntries = allEvents.filter(entry => {
+            if (!latestTheOpen) return true;
+            return !(entry.name === latestTheOpen.name && entry.year === latestTheOpen.year);
+          });
+
+          recentEntries.push(...otherEntries.slice(0, 3));
+          setRecentChampions(recentEntries.slice(0, 4));
         }
       }).catch(() => {}),
     ]).finally(() => setLoading(false));

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { API } from '../App';
-import { Loader2, ChevronDown, ChevronUp, Flag } from 'lucide-react';
+import { Loader2, ChevronDown, ChevronUp, Flag, Trophy } from 'lucide-react';
 
 const SHORT_NAMES = {
   'Masters': 'Masters',
@@ -94,6 +94,7 @@ export default function CupRacePage() {
 
   const tournaments = data?.tournaments || [];
   const standings = data?.standings || [];
+  const podium = standings.slice(0, 3);
 
   return (
     <div className="p-4 md:p-8 max-w-4xl mx-auto">
@@ -107,8 +108,35 @@ export default function CupRacePage() {
       <p className="text-xs text-slate-400 mb-6">Sponsored by Hills Dept. Store — Hills is where the toys are.</p>
 
       <p className="text-sm text-slate-500 mb-6">
-        Season-long standings based on each manager's top team points per major. Most points at the end of the season wins.
+        Season-long standings based on each manager's top team points per major. All four majors are now complete, so the final standings are locked in.
       </p>
+
+      {podium.length > 0 && (
+        <div className="mb-6 rounded-2xl border border-[#1B4332]/10 bg-gradient-to-br from-[#1B4332] to-[#2D6A4F] p-4 text-white shadow-sm">
+          <div className="flex items-center gap-2 mb-4">
+            <Trophy className="w-4 h-4 text-[#CCFF00]" />
+            <h2 className="font-heading font-bold text-sm uppercase tracking-[0.2em] text-[#CCFF00]">Final Podium</h2>
+          </div>
+          <div className="grid gap-3 md:grid-cols-3">
+            {podium.map((entry, index) => {
+              const accent = index === 0 ? 'from-[#fbbf24] to-[#f59e0b]' : index === 1 ? 'from-slate-200 to-slate-300' : 'from-[#c2410c] to-[#9a2c0a]';
+              return (
+                <div key={entry.user_id} className={`rounded-xl border border-white/20 bg-gradient-to-br ${accent} p-4 text-[#0F172A]`}>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.2em]">{index === 0 ? '1st' : index === 1 ? '2nd' : '3rd'}</span>
+                    <div className="w-7 h-7 rounded-full bg-white/70 flex items-center justify-center text-sm font-black font-numbers">
+                      {index + 1}
+                    </div>
+                  </div>
+                  <p className="font-heading font-bold text-lg truncate">{entry.user_name}</p>
+                  <p className="font-numbers font-extrabold text-2xl mt-1">{entry.total_points.toFixed(1)}</p>
+                  <p className="text-[11px] uppercase tracking-[0.2em] opacity-70 mt-1">points</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {standings.length === 0 ? (
         <div className="bg-white rounded-xl border border-slate-200 p-10 text-center">

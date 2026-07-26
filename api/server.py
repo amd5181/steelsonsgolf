@@ -1161,6 +1161,7 @@ async def manual_refresh(tournament_id: str, user_id: Optional[str] = Query(None
 # ── History ──
 HISTORY = [
     {"year":2026,"tournaments":[
+        {"name":"The Open","winners":["Carson Custer","Toby Cressman","Justin Malago"]},
         {"name":"U.S. Open","winners":["Paul Del Presto","Ian Very","Alan McBride"]},
         {"name":"PGA Championship","winners":["Justin Malago","Ian Very","Matthew Rose Nese"]},
         {"name":"Masters","winners":["Fatz","Chris Fedishen","Matthew Rose Nese"]}]},
